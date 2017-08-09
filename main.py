@@ -21,7 +21,6 @@ def main():
 		bot.getMe()
 		time.sleep(10)
 
-
 def init():
 	reload(sys)
 	sys.setdefaultencoding('utf8')
@@ -36,7 +35,27 @@ content_type_concerned = ["new_chat_member"]
 group_type = ['group','supergroup']
 admin_type = ['creator','administrator']
 
-groupcache = []
+group_cache = group_cache_class()
+
+class group_cache_class:
+	def __init__(self):
+		self.group_id = []
+		self.group_msg = []
+		self.is_admin = []
+	def load(self):
+		self.__init__()
+		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
+		result = sql.query("SELECT * FROM `welcomemsg`")
+		sql.close()
+		for x in result:
+			self.group_id.append(x[0])
+			self.group_msg.append(x[1])
+			self.is_admin.append(x[2])
+	def find_group_index(self,chat_id):
+		for x in xrange(0,len(self.group_id)):
+			if self.group_id[x] == chat_id:
+				return x
+		return -1
 
 def onMessage(msg):
 	global bot
@@ -88,11 +107,6 @@ def onMessage(msg):
 			if result:
 				bot.sendMessage(chat_id,b64decode(result[0][0]),parse_mode='Markdown',
 					disable_web_page_preview=True,reply_to_message_id=msg['message_id'])
-'''
-			if bot.getChatMember(chat_id,msg['from']['id'])['status'] == "member":
-				bot.restrictChatMember(chat_id,msg['from']['id'])
-				bot.deleteMessage((chat_id,msg['message_id']))
-'''
 
 if __name__ == '__main__':
 	init()
