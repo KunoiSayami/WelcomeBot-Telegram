@@ -42,13 +42,15 @@ class group_cache_class:
 		global bot_id
 		try:
 			self.g[x[0]]={'msg' : x[1] , 'is_admin' : 
-				self.__check_admin(bot.getChatMember(x[0],bot_id)[status])}
+				self.__check_admin(bot.getChatMember(x[0],bot_id)['status'])}
+			return self.g[x[0]]['is_admin']
 		except telepot.exception.TelegramError as e:
 			if e[0] == 'Bad Request: chat not found':
 				self.__db_del(x[0])
 				print('Delete not found chat:%d'%x[0])
 			else:
 				raise e
+			return -1
 	def delete(self,chat_id):
 		try:
 			del self.g[chat_id]
@@ -82,14 +84,12 @@ class group_cache_class:
 		self.g[x[0]]['msg'] = x[1]
 
 
-
 def onMessage(msg):	
 	global bot
 	content_type, chat_type, chat_id = telepot.glance(msg)
-	print(content_type)
-	print(msg)
-	if content_type == 'new_chat_member' and msg['new_chat_members']['id'] == bot_id:
+	if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == bot_id:
 		is_admin = group_cache.add((chat_id,None))
+		assert(is_admin != -1)
 		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
 		sql.execute("INSERT INTO `welcomemsg` (`group_id`,`msg`,`is_admin`) VALUES (%d,NULL,%d)"%(chat_id,is_admin))
 		sql.close()
