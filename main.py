@@ -79,7 +79,10 @@ class group_cache_class:
 			return False
 	def edit(self,x):
 		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
-		sql.execute("UPDATE `welcomemsg` SET `msg` = '%s' WHERE `group_id` = %d"%(x[1],x[0]))
+		if x[1]:
+			sql.execute("UPDATE `welcomemsg` SET `msg` = '%s' WHERE `group_id` = %d"%(x[1],x[0]))
+		else:
+			sql.execute("UPDATE `welcomemsg` SET `msg` = NULL WHERE `group_id` = %d"%x[0])
 		sql.close()
 		self.g[x[0]]['msg'] = x[1]
 
@@ -132,9 +135,9 @@ def onMessage(msg):
 			bot.sendMessage(chat_id,'*Current chat_id:%d*'%chat_id,
 				parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 		elif content_type in content_type_concerned:
-			result = group_cache.get(chat_id)['message']
+			result = group_cache.get(chat_id)['msg']
 			if result:
-				bot.sendMessage(chat_id,b64decode(result[0][0]),parse_mode='Markdown',
+				bot.sendMessage(chat_id,b64decode(result),parse_mode='Markdown',
 					disable_web_page_preview=True,reply_to_message_id=msg['message_id'])
 
 def main():
