@@ -44,6 +44,10 @@ class group_cache_class:
 			self.g[x[0]]={'msg' : x[1] , 'is_admin' : 
 				self.__check_admin(bot.getChatMember(x[0],bot_id)['status'])}
 			return self.g[x[0]]['is_admin']
+		except telepot.exception.BotWasKickedError:
+			self.__db_del(x[0])
+			print('Delete kicked chat:%d'%x[0])
+			return -1
 		except telepot.exception.TelegramError as e:
 			if e[0] == 'Bad Request: chat not found':
 				self.__db_del(x[0])
@@ -62,7 +66,7 @@ class group_cache_class:
 			return self.g[chat_id]
 		except KeyError:
 			print('Can\'t find %d in get()'%chat_id)
-			return None
+			return {'msg':None}
 	def __db_del(self,chat_id):
 		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
 		sql.execute("DELETE FROM `welcomemsg` WHERE `group_id` = %d"%(chat_id))
