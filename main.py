@@ -105,7 +105,7 @@ def onMessage(msg):
 		group_cache.delete(chat_id)
 		return
 	if msg['chat']['type'] in group_type:
-		if content_type=='text' and command_match.match(msg['text']):
+		if content_type=='text' and msg['text'][0] =='/' and command_match.match(msg['text']):
 			if bot.getChatMember(chat_id,msg['from']['id'])['status'] not in admin_type:
 				bot.sendMessage(chat_id,'Permission Denied.\n你没有权限，快滚',
 					reply_to_message_id=msg['message_id'])
@@ -136,7 +136,7 @@ def onMessage(msg):
 				bot.sendMessage(chat_id,"*Reload configuration successfully!*",
 					parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 				return
-			bot.sendMessage(chat_id,'*Current chat_id:%d*'%chat_id,
+			bot.sendMessage(chat_id,'*Current chat_id:%d\nYour id:%d*'%(chat_id,msg['from']['id']),
 				parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 		elif content_type in content_type_concerned:
 			result = group_cache.get(chat_id)['msg']
