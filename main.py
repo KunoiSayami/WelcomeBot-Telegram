@@ -120,6 +120,10 @@ def onMessage(msg):
 					r = urllib2.urlopen(welcomemsg)
 					welcomemsg = r.read()
 					r.close()
+				if len(welcomemsg) > 4096:
+					bot.sendMessage(chat_id,"*Error*:Welcome message is too long.(len() must smaller than 4096)",
+						parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+					return
 				group_cache.edit((chat_id,b64encode(welcomemsg)))
 				bot.sendMessage(chat_id,"*Set welcome message to:*\n%s"%welcomemsg,
 					disable_web_page_preview=True,parse_mode='Markdown',reply_to_message_id=msg['message_id'])
