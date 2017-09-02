@@ -16,6 +16,19 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `poem`
+--
+
+DROP TABLE IF EXISTS `poem`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `poem` (
+  `string` text NOT NULL,
+  UNIQUE KEY `str` (`string`(100))
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
 -- Table structure for table `welcomemsg`
 --
 
@@ -25,7 +38,9 @@ DROP TABLE IF EXISTS `welcomemsg`;
 CREATE TABLE `welcomemsg` (
   `group_id` bigint(20) NOT NULL,
   `msg` text,
-  `is_admin` tinyint(4) NOT NULL DEFAULT '0',
+  `is_admin` tinyint(3) NOT NULL DEFAULT '0',
+  `poemable` tinyint(3) NOT NULL DEFAULT '0',
+  `ignore_err` tinyint(3) NOT NULL DEFAULT '1',
   PRIMARY KEY (`group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
