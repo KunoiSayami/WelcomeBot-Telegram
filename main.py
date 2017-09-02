@@ -128,7 +128,7 @@ def onMessage(msg):
 	global bot,group_cache,poem_cache
 	content_type, chat_type, chat_id = telepot.glance(msg)
 	if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == bot_id:
-		is_admin = group_cache.add((chat_id,None))
+		is_admin = group_cache.add((chat_id,None,None,0,1))
 		assert(is_admin != -1)
 		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
 		sql.execute("INSERT INTO `welcomemsg` (`group_id`,`msg`,`is_admin`) VALUES (%d,NULL,%d)"%(chat_id,is_admin))
