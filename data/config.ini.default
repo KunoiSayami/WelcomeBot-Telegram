@@ -1,0 +1,19 @@
+[bot]
+bot_token = 
+
+[database]
+charset = utf8
+host =
+port =
+user =
+passwd =
+db_name =
+
+[log]
+logfile = log.log
+print_info = 
+log_info = false
+print_err = stderr
+log_err = true
+print_debug = 
+log_debug = false

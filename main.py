@@ -7,8 +7,9 @@
 import telepot
 import time
 import sys
-from config import botToken,sqlhost,sqlport,sqluser,sqlpwd,sqlname
-from mysqlmodule import mysqlModule as mm
+from botlib.Config import Config
+from botlib.MainDatabase import MainDatabase
+import botlib.Log as Log
 from base64 import b64encode,b64decode
 import re,urllib2,random
 
@@ -27,7 +28,6 @@ setflagcommand_match = re.compile(r'^\/setflag(@[a-zA-Z_]*bot)?\s([a-zA-Z_]+)\s(
 content_type_concerned = ['new_chat_member']
 group_type = ['group','supergroup']
 admin_type = ['creator','administrator']
-
 flag_type = ['poemable','ignore_err']
 
 group_cache = None
@@ -39,9 +39,8 @@ class poem_class:
 		self.poem_pool = list()
 		self.load()
 	def load(self):
-		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
-		result = sql.query("SELECT * FROM `poem`")
-		sql.close()
+		with MainDatabase() as db:
+			result = db.query("SELECT * FROM `poem`")
 		for x in result:
 			self.__add(x[0])
 	def __add(self,poem_str):
@@ -56,83 +55,94 @@ class poem_class:
 class group_cache_class:
 	def __init__(self):
 		self.g = dict()
+
 	def load(self):
 		self.__init__()
-		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
-		result = sql.query("SELECT * FROM `welcomemsg`")
-		sql.close()
+		Log.debug
+		with MainDatabase() as db:
+			result = db.query("SELECT * FROM `welcomemsg`")
+			Log.debug('in group_cache_class.load(): [exp(not result) = {}]',not result)
 		for x in result:
 			self.add(x)
-	def add(self,x):
+
+	def add(self,x,need_check_admin=True):
 		global bot_id
-		try:
-			self.g[x[0]]={'msg' : x[1] , 'is_admin' : 
-				self.__check_admin(bot.getChatMember(x[0],bot_id)['status']),
-				'poemable':x[3],
-				'ignore_err':x[4]}
-			return self.g[x[0]]['is_admin']
-		except telepot.exception.BotWasKickedError:
-			self.__db_del(x[0])
-			print('Delete kicked chat:%d'%x[0])
-			return -1
-		except telepot.exception.TelegramError as e:
-			if e[0] == 'Bad Request: chat not found':
+		if need_check_admin:
+			try:
+				result = self.__check_admin(bot.getChatMember(x[0],bot_id)['status'])
+			except telepot.exception.BotWasKickedError:
 				self.__db_del(x[0])
-				print('Delete not found chat:%d'%x[0])
-			else:
-				raise e
-			return -1
+				Log.info('Delete kicked chat:{}',x[0])
+				return -1
+			except telepot.exception.TelegramError as e:
+				if e[0] == 'Bad Request: chat not found':
+					self.__db_del(x[0])
+					Log.error('Delete not found chat:{}',x[0])
+				else:
+					raise e
+				return -1
+		else:
+			result = 0
+		self.g[x[0]]={'msg' : x[1],
+			'is_admin':result,
+			'poemable':x[3],
+			'ignore_err':x[4]}
+		return self.g[x[0]]['is_admin']
+
 	def delete(self,chat_id):
 		try:
 			del self.g[chat_id]
 			self.__db_del(chat_id)
 		except KeyError:
-			print('Can\'t find %d in delete()'%chat_id)
+			Log.error('Can\'t find {} in delete()',chat_id)
+
 	def get(self,chat_id):
 		try:
 			return self.g[chat_id]
 		except KeyError:
-			print('Can\'t find %d in get()'%chat_id)
+			Log.error('Can\'t find {} in get()',chat_id)
+			self.add((chat_id,None,0,0,1),False)
 			return {'msg':None}
+
 	def __db_del(self,chat_id):
-		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
-		sql.execute("DELETE FROM `welcomemsg` WHERE `group_id` = %d"%(chat_id))
-		sql.close()
+		with MainDatabase() as db:
+			db.execSQL("DELETE FROM `welcomemsg` WHERE `group_id` = %d"%(chat_id))
+
 	def __check_admin(self,status):
 		if status in admin_type:
 			return 1
 		else:
 			return 0
+
 	def get_is_admin(self,chat_id):
 		if self.get(chat_id)['is_admin'] == 1:
 			return True
 		else:
 			return False
+
 	def edit(self,x):
-		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
-		if x[1]:
-			sql.execute("UPDATE `welcomemsg` SET `msg` = '%s' WHERE `group_id` = %d"%(x[1],x[0]))
-		else:
-			sql.execute("UPDATE `welcomemsg` SET `msg` = NULL WHERE `group_id` = %d"%x[0])
-		sql.close()
+		with MainDatabase() as db:
+			if x[1]:
+				db.execSQL("UPDATE `welcomemsg` SET `msg` = '%s' WHERE `group_id` = %d"%(x[1],x[0]))
+			else:
+				db.execSQL("UPDATE `welcomemsg` SET `msg` = NULL WHERE `group_id` = %d"%x[0])
 		self.g[x[0]]['msg'] = x[1]
+
 	def editflag(self,x):
 		if self.g[x[0]][x[1]] == x[2]:
 			return
 		self.g[x[0]][x[1]] = x[2]
-		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
-		sql.execute("UPDATE `welcomemsg` SET `%s` = %d WHERE `group_id` = %d"%(x[1],x[2],x[0]))
-		sql.close()
+		with MainDatabase() as db:
+			sql.execSQL("UPDATE `welcomemsg` SET `%s` = %d WHERE `group_id` = %d"%(x[1],x[2],x[0]))
 
 def onMessage(msg):	
 	global bot,group_cache,poem_cache
 	content_type, chat_type, chat_id = telepot.glance(msg)
 	if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == bot_id:
-		is_admin = group_cache.add((chat_id,None,None,0,1))
+		is_admin = group_cache.add((chat_id,None))
 		assert(is_admin != -1)
-		sql = mm(sqlhost,sqlport,sqluser,sqlpwd,sqlname)
-		sql.execute("INSERT INTO `welcomemsg` (`group_id`,`msg`,`is_admin`) VALUES (%d,NULL,%d)"%(chat_id,is_admin))
-		sql.close()
+		with MainDatabase() as db:
+			db.execSQL("INSERT INTO `welcomemsg` (`group_id`,`msg`,`is_admin`) VALUES (%d,NULL,%d)"%(chat_id,is_admin))
 		return
 	if content_type == 'left_chat_member' and msg['left_chat_member']['id'] == bot_id:
 		group_cache.delete(chat_id)
@@ -152,6 +162,7 @@ def onMessage(msg):
 					bot.sendMessage(chat_id,'Permission Denied.\n*你没有资格念他的诗，你给我出去*',
 							parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 					return
+				return
 			if bot.getChatMember(chat_id,msg['from']['id'])['status'] not in admin_type:
 				if not group_cache.get(chat_id)['ignore_err']:
 					bot.sendMessage(chat_id,'Permission Denied.\n你没有权限，快滚',
@@ -209,19 +220,28 @@ def onMessage(msg):
 
 def main():
 	global bot,group_cache,bot_id,poem_cache
-	print('Start Main()')
-	bot = telepot.Bot(botToken)
-	print('Success login with token %s***********************%s'%(botToken[:4],botToken[-4:]))
-	bot.message_loop(onMessage)
-	print('message_loop() started\nGet bot id....')
+	Log.info('Strat initializing....')
+	Log.debug('Debug mode is on')
+	bot = telepot.Bot(Config.bot.bot_token)
 	bot_id = bot.getMe()['id']
+	Log.info('Success login telegram bot {} with Token {}************{}', bot_id,
+		str(Config.bot.bot_token)[:5],str(Config.bot.bot_token)[-5:])
+	Log.info('Starting message_loop()')
+	bot.message_loop(onMessage)
+	Log.info('Initializing other cache')
 	group_cache = group_cache_class()
 	group_cache.load()
 	poem_cache = poem_class()
-	print('bot init finished')
+	Log.info('Bot is now running!')
 	while True:
-		bot.getMe()
-		time.sleep(10)
+		time.sleep(30)
+		try:
+			bot.getMe()
+		except telepot.exception.BadHTTPResponse as e:
+			if e[0] == 502:
+				Log.error('Telegram Server Error: 502, Program will now exit')
+			else:
+				raise e
 
 def init():
 	reload(sys)

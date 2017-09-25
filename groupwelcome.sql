@@ -15,9 +15,13 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
+DROP DATABASE IF EXISTS `groupwelcome`;
+CREATE DATABASE `groupwelcome` CHARACTER SET 'utf8' COLLATE 'utf8_general_ci';
+
 --
 -- Table structure for table `poem`
 --
+
 
 DROP TABLE IF EXISTS `poem`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
