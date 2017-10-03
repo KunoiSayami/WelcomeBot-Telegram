@@ -33,6 +33,141 @@ flag_type = ['poemable','ignore_err']
 group_cache = None
 poem_cache = None
 
+class bot_class:
+	def __init__(self):
+		WAIT_TIME = 0.03
+		Log.debug(3,'Enter bot_class.__init__()')
+		Log.debug(2,'[bot_token = {}]',Config.bot.bot_token)
+		Log.info('Initializing bot settings...')
+		self.bot = telepot.Bot(Config.bot.bot_token)
+		self.bot_id = self.bot.getMe()['id']
+		Log.info('Success login telegram bot {} with Token {}************{}', self.bot_id,
+			str(Config.bot.bot_token)[:5],str(Config.bot.bot_token)[-5:])
+		Log.info('Starting message_loop()')
+		self.bot.message_loop(self.onMessage)
+		Log.info('message_loop() is now started!')
+		Log.info('Bot settings initialized successful!')
+		Log.debug(3,'Exit bot_class.__init__()')
+
+	def getid(self):
+		Log.debug(3,'Calling bot_class.getid() [return {}]',self.bot_id)
+		return self.bot_id
+
+	def getChatMember(self,*args):
+		return self.bot.getChatMember(*args)
+
+	def sendMessage(self,chat_id,message,**kwargs):
+		while True:
+			try:
+				Log.debug(3,'Calling bot_class.sendMessage() [chat_id = {},message = \'{}\', kwargs = {}]',
+					chat_id,message,kwargs)
+				self.bot.sendMessage(chat_id,message,**kwargs)
+				break
+			except telepot.exception.TelegramError as e:
+				raise e
+			except Exception as e:
+				Log.error('Exception {} occurred',e.__name__)
+				Log.debug(1,'on bot_class.sendMessage() [chat_id = {},message = \'{}\', kwargs = {}]',
+					chat_id,message,kwargs)
+				time.sleep(self.WAIT_TIME)
+
+	def onMessage(self,msg):	
+		global bot,group_cache,poem_cache
+		Log.debug(3,'Incoming message')
+		while True:
+			try:
+				Log.debug(2,'Calling telepot.glance()')
+				content_type, chat_type, chat_id = telepot.glance(msg)
+				Log.debug(2,'Exiting telepot.glance() [content_type = {}, chat_type = {}, chat_id = {}]',
+					content_type, chat_type, chat_id)
+				break
+			except telepot.exception.TelegramError as e:
+				raise e
+			except Exception as e:
+				Log.error('Exception {} occurred',e.__name__)
+				Log.debug('on bot_class.sendMessage() [chat_id = {},message = \'{}\', kwargs = {}]',
+					chat_id,message,kwargs)
+				time.sleep(0.03)
+		if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == bot_id:
+			is_admin = group_cache.add((chat_id,None))
+			assert(is_admin != -1)
+			with MainDatabase() as db:
+				db.execSQL("INSERT INTO `welcomemsg` (`group_id`,`msg`,`is_admin`) VALUES (%d,NULL,%d)"%(chat_id,is_admin))
+			return
+		if content_type == 'left_chat_member' and msg['left_chat_member']['id'] == bot_id:
+			group_cache.delete(chat_id)
+			return
+		if msg['chat']['type'] in group_type:
+			if content_type=='text' and msg['text'][0] =='/' and command_match.match(msg['text']):
+				result = poemcommand_match.match(msg['text'])
+				if result:
+					if group_cache.get(chat_id)['poemable']:
+						result = poem_cache.get()
+						if not result:
+							result = b64encode('TBD')
+						self.sendMessage(chat_id,b64decode(result),
+							reply_to_message_id=msg['message_id'])
+						return
+					elif not group_cache.get(chat_id)['ignore_err']:
+						self.sendMessage(chat_id,'Permission Denied.\n*你没有资格念他的诗，你给我出去*',
+								parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+						return
+					return
+				if bot.getChatMember(chat_id,msg['from']['id'])['status'] not in admin_type:
+					if not group_cache.get(chat_id)['ignore_err']:
+						self.sendMessage(chat_id,'Permission Denied.\n你没有权限，快滚',
+							reply_to_message_id=msg['message_id'])
+					if group_cache.get_is_admin(chat_id):
+						self.bot.restrictChatMember(chat_id,msg['from']['id'],until_date=msg['date']+60)
+					return
+				result = setcommand_match.match(msg['text'])
+				if result:
+					welcomemsg = str(result.group(2))
+					result = gist_match.match(welcomemsg)
+					if result:
+						r = urllib2.urlopen(welcomemsg)
+						welcomemsg = r.read()
+						r.close()
+					if len(welcomemsg) > 4096:
+						self.sendMessage(chat_id,"*Error*:Welcome message is too long.(len() must smaller than 4096)",
+							parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+						return
+					group_cache.edit((chat_id,b64encode(welcomemsg)))
+					self.sendMessage(chat_id,"*Set welcome message to:*\n%s"%welcomemsg,
+						disable_web_page_preview=True,parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+					return
+				result = clearcommand_match.match(msg['text'])
+				if result:
+					group_cache.edit((chat_id,None))
+					self.sendMessage(chat_id,"*Clear welcome message successfully!*",
+						parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+					return
+				result = reloadcommand_match.match(msg['text'])
+				if result:
+					group_cache.load()
+					poem_cache.reload()
+					self.sendMessage(chat_id,"*Reload configuration and poem successfully!*",
+						parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+					return
+				result = setflagcommand_match.match(msg['text'])
+				if result:
+					if str(result.group(2)) not in flag_type:
+						if not group_cache.get(chat_id)['ignore_err']:
+							self.sendMessage(chat_id,"*Error*: Flag \"%s\" not exist"%str(result.group(2)),
+								parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+						return
+					group_cache.editflag((chat_id,str(result.group(2)),int(result.group(3))))
+					self.sendMessage(chat_id,"*Set flag \"%s\" to \"%d\" successfully!*"%(str(result.group(2)),int(result.group(3))),
+						parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+					return
+				self.sendMessage(chat_id,'*Current chat_id:%d\nYour id:%d*'%(chat_id,msg['from']['id']),
+					parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+			elif content_type in content_type_concerned:
+				result = group_cache.get(chat_id)['msg']
+				if result:
+					self.sendMessage(chat_id,b64decode(result),parse_mode='Markdown',
+						disable_web_page_preview=True,reply_to_message_id=msg['message_id'])
+
 class poem_class:
 	def __init__(self):
 		random.seed()
@@ -52,16 +187,17 @@ class poem_class:
 			return None
 		return self.poem_pool[random.randint(0,len(self.poem_pool)-1)]
 
+
+
 class group_cache_class:
 	def __init__(self):
 		self.g = dict()
 
 	def load(self):
 		self.__init__()
-		Log.debug
 		with MainDatabase() as db:
 			result = db.query("SELECT * FROM `welcomemsg`")
-			Log.debug('in group_cache_class.load(): [exp(not result) = {}]',not result)
+			Log.debug(1,'in group_cache_class.load(): [exp(not result) = {}]',not result)
 		for x in result:
 			self.add(x)
 
@@ -133,101 +269,16 @@ class group_cache_class:
 			return
 		self.g[x[0]][x[1]] = x[2]
 		with MainDatabase() as db:
-			sql.execSQL("UPDATE `welcomemsg` SET `%s` = %d WHERE `group_id` = %d"%(x[1],x[2],x[0]))
+			db.execSQL("UPDATE `welcomemsg` SET `%s` = %d WHERE `group_id` = %d"%(x[1],x[2],x[0]))
 
-def onMessage(msg):	
-	global bot,group_cache,poem_cache
-	content_type, chat_type, chat_id = telepot.glance(msg)
-	if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == bot_id:
-		is_admin = group_cache.add((chat_id,None))
-		assert(is_admin != -1)
-		with MainDatabase() as db:
-			db.execSQL("INSERT INTO `welcomemsg` (`group_id`,`msg`,`is_admin`) VALUES (%d,NULL,%d)"%(chat_id,is_admin))
-		return
-	if content_type == 'left_chat_member' and msg['left_chat_member']['id'] == bot_id:
-		group_cache.delete(chat_id)
-		return
-	if msg['chat']['type'] in group_type:
-		if content_type=='text' and msg['text'][0] =='/' and command_match.match(msg['text']):
-			result = poemcommand_match.match(msg['text'])
-			if result:
-				if group_cache.get(chat_id)['poemable']:
-					result = poem_cache.get()
-					if not result:
-						result = b64encode('TBD')
-					bot.sendMessage(chat_id,b64decode(result),
-						reply_to_message_id=msg['message_id'])
-					return
-				elif not group_cache.get(chat_id)['ignore_err']:
-					bot.sendMessage(chat_id,'Permission Denied.\n*你没有资格念他的诗，你给我出去*',
-							parse_mode='Markdown',reply_to_message_id=msg['message_id'])
-					return
-				return
-			if bot.getChatMember(chat_id,msg['from']['id'])['status'] not in admin_type:
-				if not group_cache.get(chat_id)['ignore_err']:
-					bot.sendMessage(chat_id,'Permission Denied.\n你没有权限，快滚',
-						reply_to_message_id=msg['message_id'])
-				if group_cache.get_is_admin(chat_id):
-					bot.restrictChatMember(chat_id,msg['from']['id'],until_date=msg['date']+60)
-				return
-			result = setcommand_match.match(msg['text'])
-			if result:
-				welcomemsg = str(result.group(2))
-				result = gist_match.match(welcomemsg)
-				if result:
-					r = urllib2.urlopen(welcomemsg)
-					welcomemsg = r.read()
-					r.close()
-				if len(welcomemsg) > 4096:
-					bot.sendMessage(chat_id,"*Error*:Welcome message is too long.(len() must smaller than 4096)",
-						parse_mode='Markdown',reply_to_message_id=msg['message_id'])
-					return
-				group_cache.edit((chat_id,b64encode(welcomemsg)))
-				bot.sendMessage(chat_id,"*Set welcome message to:*\n%s"%welcomemsg,
-					disable_web_page_preview=True,parse_mode='Markdown',reply_to_message_id=msg['message_id'])
-				return
-			result = clearcommand_match.match(msg['text'])
-			if result:
-				group_cache.edit((chat_id,None))
-				bot.sendMessage(chat_id,"*Clear welcome message successfully!*",
-					parse_mode='Markdown',reply_to_message_id=msg['message_id'])
-				return
-			result = reloadcommand_match.match(msg['text'])
-			if result:
-				group_cache.load()
-				poem_cache.reload()
-				bot.sendMessage(chat_id,"*Reload configuration and poem successfully!*",
-					parse_mode='Markdown',reply_to_message_id=msg['message_id'])
-				return
-			result = setflagcommand_match.match(msg['text'])
-			if result:
-				if str(result.group(2)) not in flag_type:
-					if not group_cache.get(chat_id)['ignore_err']:
-						bot.sendMessage(chat_id,"*Error*: Flag \"%s\" not exist"%str(result.group(2)),
-							parse_mode='Markdown',reply_to_message_id=msg['message_id'])
-					return
-				group_cache.editflag((chat_id,str(result.group(2)),int(result.group(3))))
-				bot.sendMessage(chat_id,"*Set flag \"%s\" to \"%d\" successfully!*"%(str(result.group(2)),int(result.group(3))),
-					parse_mode='Markdown',reply_to_message_id=msg['message_id'])
-				return
-			bot.sendMessage(chat_id,'*Current chat_id:%d\nYour id:%d*'%(chat_id,msg['from']['id']),
-				parse_mode='Markdown',reply_to_message_id=msg['message_id'])
-		elif content_type in content_type_concerned:
-			result = group_cache.get(chat_id)['msg']
-			if result:
-				bot.sendMessage(chat_id,b64decode(result),parse_mode='Markdown',
-					disable_web_page_preview=True,reply_to_message_id=msg['message_id'])
 
 def main():
 	global bot,group_cache,bot_id,poem_cache
 	Log.info('Strat initializing....')
-	Log.debug('Debug mode is on')
-	bot = telepot.Bot(Config.bot.bot_token)
-	bot_id = bot.getMe()['id']
-	Log.info('Success login telegram bot {} with Token {}************{}', bot_id,
-		str(Config.bot.bot_token)[:5],str(Config.bot.bot_token)[-5:])
-	Log.info('Starting message_loop()')
-	bot.message_loop(onMessage)
+	Log.info('Debug enable: {}',Log.get_debug_info()[0])
+	Log.debug(1,'Debug level: {}',Log.get_debug_info()[1])
+	bot = bot_class()
+	bot_id = bot.getid()
 	Log.info('Initializing other cache')
 	group_cache = group_cache_class()
 	group_cache.load()
@@ -235,13 +286,6 @@ def main():
 	Log.info('Bot is now running!')
 	while True:
 		time.sleep(30)
-		try:
-			bot.getMe()
-		except telepot.exception.BadHTTPResponse as e:
-			if e[0] == 502:
-				Log.error('Telegram Server Error: 502, Program will now exit')
-			else:
-				raise e
 
 def init():
 	reload(sys)
