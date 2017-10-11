@@ -43,7 +43,6 @@ DROP TABLE IF EXISTS `welcomemsg`;
 CREATE TABLE `welcomemsg` (
   `group_id` bigint(20) NOT NULL,
   `msg` text,
-  `is_admin` tinyint(3) NOT NULL DEFAULT '0',
   `poemable` tinyint(3) NOT NULL DEFAULT '0',
   `ignore_err` tinyint(3) NOT NULL DEFAULT '1',
   PRIMARY KEY (`group_id`)
@@ -59,4 +58,4 @@ CREATE TABLE `welcomemsg` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-08-10  0:33:51
+-- Dump completed on 2017-10-11 12:25:38

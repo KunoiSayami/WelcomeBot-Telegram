@@ -92,7 +92,7 @@ class bot_class:
 			is_admin = group_cache.add((chat_id,None))
 			assert(is_admin != -1)
 			with MainDatabase() as db:
-				db.execSQL("INSERT INTO `welcomemsg` (`group_id`,`msg`,`is_admin`) VALUES (%d,NULL,%d)"%(chat_id,is_admin))
+				db.execSQL("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
 			return
 		if content_type == 'left_chat_member' and msg['left_chat_member']['id'] == bot_id:
 			group_cache.delete(chat_id)
@@ -188,7 +188,6 @@ class poem_class:
 		return self.poem_pool[random.randint(0,len(self.poem_pool)-1)]
 
 
-
 class group_cache_class:
 	def __init__(self):
 		self.g = dict()
@@ -201,19 +200,22 @@ class group_cache_class:
 		for x in result:
 			self.add(x)
 
-	def add(self,x,need_check_admin=True):
+	def add(self,x,need_check_admin=True,not_found=False):
 		global bot_id
 		if need_check_admin:
 			try:
 				result = self.__check_admin(bot.getChatMember(x[0],bot_id)['status'])
 			except telepot.exception.BotWasKickedError:
-				self.__db_del(x[0])
-				Log.info('Delete kicked chat:{}',x[0])
+				if not not_found:
+					self.__db_del(x[0])
+					Log.info('Delete kicked chat:{}',x[0])
 				return -1
 			except telepot.exception.TelegramError as e:
 				if e[0] == 'Bad Request: chat not found':
-					self.__db_del(x[0])
-					Log.error('Delete not found chat:{}',x[0])
+					if not not_found:
+						self.__db_del(x[0])
+						Log.error('Delete not found chat:{}',x[0])
+					Log.error('in group_cache_class.add() chat_id : {} not found',chat_id)
 				else:
 					raise e
 				return -1
@@ -221,8 +223,8 @@ class group_cache_class:
 			result = 0
 		self.g[x[0]]={'msg' : x[1],
 			'is_admin':result,
-			'poemable':x[3],
-			'ignore_err':x[4]}
+			'poemable':x[2],
+			'ignore_err':x[3]}
 		return self.g[x[0]]['is_admin']
 
 	def __db_add(self,chat_id):
@@ -242,7 +244,7 @@ class group_cache_class:
 		except KeyError:
 			Log.error('Can\'t find {} in get()',chat_id)
 			bot.sendMessage(chat_id,'It\'s seems that database broken, please reset welcome message.')
-			self.add((chat_id,None,0,0,1),False)
+			self.add((chat_id,None,0,1),not_found=True)
 			self.__db_add(chat_id)
 			return {'msg':None}
 
@@ -257,10 +259,7 @@ class group_cache_class:
 			return 0
 
 	def get_is_admin(self,chat_id):
-		if self.get(chat_id)['is_admin'] == 1:
-			return True
-		else:
-			return False
+		return {1:True,0:False}.get(self.get(chat_id)['is_admin'])
 
 	def edit(self,x):
 		with MainDatabase() as db:
