@@ -7,9 +7,9 @@
 import telepot
 import time
 import sys
-from botlib.Config import Config
-from botlib.MainDatabase import MainDatabase
-import botlib.Log as Log
+from libpy.Config import Config
+from libpy.MainDatabase import MainDatabase
+import libpy.Log as Log
 from base64 import b64encode,b64decode
 import re,urllib2,random
 
