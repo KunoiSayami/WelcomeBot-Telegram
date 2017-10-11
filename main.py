@@ -225,6 +225,10 @@ class group_cache_class:
 			'ignore_err':x[4]}
 		return self.g[x[0]]['is_admin']
 
+	def __db_add(self,chat_id):
+		with MainDatabase() as db:
+			db.execSQL("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
+
 	def delete(self,chat_id):
 		try:
 			del self.g[chat_id]
@@ -237,7 +241,9 @@ class group_cache_class:
 			return self.g[chat_id]
 		except KeyError:
 			Log.error('Can\'t find {} in get()',chat_id)
+			bot.sendMessage(chat_id,'It\'s seems that database broken, please reset welcome message.')
 			self.add((chat_id,None,0,0,1),False)
+			self.__db_add(chat_id)
 			return {'msg':None}
 
 	def __db_del(self,chat_id):

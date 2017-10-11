@@ -17,6 +17,7 @@
 
 DROP DATABASE IF EXISTS `groupwelcome`;
 CREATE DATABASE `groupwelcome` CHARACTER SET 'utf8' COLLATE 'utf8_general_ci';
+USE `groupwelcome`;
 
 --
 -- Table structure for table `poem`

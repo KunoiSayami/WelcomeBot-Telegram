@@ -7,13 +7,14 @@ host =
 port =
 user =
 passwd =
-db_name =
+db_name = groupwelcome
 
 [log]
-logfile = log.log
-print_info = 
+logfile = data/log.log
 log_info = false
-print_err = stderr
+print_info = 
 log_err = true
-print_debug = 
+print_err = stderr
 log_debug = false
+print_debug = 
+debug_lvl = 1
