@@ -92,7 +92,7 @@ class bot_class:
 			is_admin = group_cache.add((chat_id,None))
 			assert(is_admin != -1)
 			with MainDatabase() as db:
-				db.execSQL("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
+				db.execute("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
 			return
 		if content_type == 'left_chat_member' and msg['left_chat_member']['id'] == bot_id:
 			group_cache.delete(chat_id)
@@ -229,7 +229,7 @@ class group_cache_class:
 
 	def __db_add(self,chat_id):
 		with MainDatabase() as db:
-			db.execSQL("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
+			db.execute("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
 
 	def delete(self,chat_id):
 		try:
@@ -250,7 +250,7 @@ class group_cache_class:
 
 	def __db_del(self,chat_id):
 		with MainDatabase() as db:
-			db.execSQL("DELETE FROM `welcomemsg` WHERE `group_id` = %d"%(chat_id))
+			db.execute("DELETE FROM `welcomemsg` WHERE `group_id` = %d"%(chat_id))
 
 	def __check_admin(self,status):
 		if status in admin_type:
@@ -264,9 +264,9 @@ class group_cache_class:
 	def edit(self,x):
 		with MainDatabase() as db:
 			if x[1]:
-				db.execSQL("UPDATE `welcomemsg` SET `msg` = '%s' WHERE `group_id` = %d"%(x[1],x[0]))
+				db.execute("UPDATE `welcomemsg` SET `msg` = '%s' WHERE `group_id` = %d"%(x[1],x[0]))
 			else:
-				db.execSQL("UPDATE `welcomemsg` SET `msg` = NULL WHERE `group_id` = %d"%x[0])
+				db.execute("UPDATE `welcomemsg` SET `msg` = NULL WHERE `group_id` = %d"%x[0])
 		self.g[x[0]]['msg'] = x[1]
 
 	def editflag(self,x):
@@ -274,7 +274,7 @@ class group_cache_class:
 			return
 		self.g[x[0]][x[1]] = x[2]
 		with MainDatabase() as db:
-			db.execSQL("UPDATE `welcomemsg` SET `%s` = %d WHERE `group_id` = %d"%(x[1],x[2],x[0]))
+			db.execute("UPDATE `welcomemsg` SET `%s` = %d WHERE `group_id` = %d"%(x[1],x[2],x[0]))
 
 
 def main():
