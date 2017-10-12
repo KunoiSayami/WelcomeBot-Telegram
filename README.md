@@ -19,3 +19,21 @@ The following libraries are required:
 ## Run
 
 After configure, you can using ./start.sh to run this bot
+
+## Hint
+
+### To pull repo, please use the following code
+
+```bash
+git clone https://github.com/Too-Naive/WelcomeBot-Telegram.git $TargetFolder
+cd $TargetFolder
+git submodule init
+git submodule update
+```
+
+### To update repo, please use the following code
+
+```bash
+git pull
+git submodule update
+```
