@@ -4,18 +4,17 @@
 #
 #Copyright (C) 2017 Too-Naive
 #
-import telepot
-import time
 import sys
-from libpy.Config import Config
-from libpy.MainDatabase import MainDatabase
+import time
+import telepot
 import libpy.Log as Log
-from base64 import b64encode,b64decode
 import re,urllib2,random
-
+from libpy.Config import Config
+from base64 import b64encode,b64decode
+from libpy.TgBotLib import telepot_bot
+from libpy.MainDatabase import MainDatabase
 
 bot = None
-bot_id = 0
 
 command_match = re.compile(r'^\/(clear|setwelcome|ping|reload|poem|setflag)(@[a-zA-Z_]*bot)?')
 setcommand_match = re.compile(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')
@@ -33,43 +32,12 @@ flag_type = ['poemable','ignore_err']
 group_cache = None
 poem_cache = None
 
-class bot_class:
-	def __init__(self):
-		WAIT_TIME = 0.03
-		Log.debug(3,'Enter bot_class.__init__()')
-		Log.debug(2,'[bot_token = {}]',Config.bot.bot_token)
-		Log.info('Initializing bot settings...')
-		self.bot = telepot.Bot(Config.bot.bot_token)
-		self.bot_id = self.bot.getMe()['id']
-		Log.info('Success login telegram bot {} with Token {}************{}', self.bot_id,
-			str(Config.bot.bot_token)[:5],str(Config.bot.bot_token)[-5:])
-		Log.info('Starting message_loop()')
-		self.bot.message_loop(self.onMessage)
-		Log.info('message_loop() is now started!')
-		Log.info('Bot settings initialized successful!')
-		Log.debug(3,'Exit bot_class.__init__()')
-
-	def getid(self):
-		Log.debug(3,'Calling bot_class.getid() [return {}]',self.bot_id)
-		return self.bot_id
+class bot_class(telepot_bot):
+	def custom_init(self,*args,**kwargs):
+		self.message_loop(self.onMessage)
 
 	def getChatMember(self,*args):
 		return self.bot.getChatMember(*args)
-
-	def sendMessage(self,chat_id,message,**kwargs):
-		while True:
-			try:
-				Log.debug(3,'Calling bot_class.sendMessage() [chat_id = {},message = \'{}\', kwargs = {}]',
-					chat_id,message,kwargs)
-				self.bot.sendMessage(chat_id,message,**kwargs)
-				break
-			except telepot.exception.TelegramError as e:
-				raise e
-			except Exception as e:
-				Log.error('Exception {} occurred',e.__name__)
-				Log.debug(1,'on bot_class.sendMessage() [chat_id = {},message = \'{}\', kwargs = {}]',
-					chat_id,message,kwargs)
-				time.sleep(self.WAIT_TIME)
 
 	def onMessage(self,msg):	
 		global bot,group_cache,poem_cache
@@ -85,16 +53,14 @@ class bot_class:
 				raise e
 			except Exception as e:
 				Log.error('Exception {} occurred',e.__name__)
-				Log.debug('on bot_class.sendMessage() [chat_id = {},message = \'{}\', kwargs = {}]',
-					chat_id,message,kwargs)
 				time.sleep(0.03)
-		if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == bot_id:
+		if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == self.getid():
 			is_admin = group_cache.add((chat_id,None))
 			assert(is_admin != -1)
 			with MainDatabase() as db:
 				db.execute("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
 			return
-		if content_type == 'left_chat_member' and msg['left_chat_member']['id'] == bot_id:
+		if content_type == 'left_chat_member' and msg['left_chat_member']['id'] == self.getid():
 			group_cache.delete(chat_id)
 			return
 		if msg['chat']['type'] in group_type:
@@ -187,7 +153,6 @@ class poem_class:
 			return None
 		return self.poem_pool[random.randint(0,len(self.poem_pool)-1)]
 
-
 class group_cache_class:
 	def __init__(self):
 		self.g = dict()
@@ -201,10 +166,10 @@ class group_cache_class:
 			self.add(x)
 
 	def add(self,x,need_check_admin=True,not_found=False):
-		global bot_id
+		global bot
 		if need_check_admin:
 			try:
-				result = self.__check_admin(bot.getChatMember(x[0],bot_id)['status'])
+				result = self.__check_admin(bot.getChatMember(x[0],bot.getid())['status'])
 			except telepot.exception.BotWasKickedError:
 				if not not_found:
 					self.__db_del(x[0])
@@ -278,12 +243,11 @@ class group_cache_class:
 
 
 def main():
-	global bot,group_cache,bot_id,poem_cache
+	global bot,group_cache,poem_cache
 	Log.info('Strat initializing....')
 	Log.info('Debug enable: {}',Log.get_debug_info()[0])
 	Log.debug(1,'Debug level: {}',Log.get_debug_info()[1])
 	bot = bot_class()
-	bot_id = bot.getid()
 	Log.info('Initializing other cache')
 	group_cache = group_cache_class()
 	group_cache.load()
