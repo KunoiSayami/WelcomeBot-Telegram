@@ -10,11 +10,13 @@ import telepot
 import libpy.Log as Log
 import re,urllib2,random
 from libpy.Config import Config
+from threading import Lock,Thread
 from base64 import b64encode,b64decode
 from libpy.TgBotLib import telepot_bot
 from libpy.MainDatabase import MainDatabase
 
 bot = None
+syncLock = Lock()
 
 command_match = re.compile(r'^\/(clear|setwelcome|ping|reload|poem|setflag)(@[a-zA-Z_]*bot)?')
 setcommand_match = re.compile(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')
@@ -34,7 +36,15 @@ poem_cache = None
 
 class bot_class(telepot_bot):
 	def custom_init(self,*args,**kwargs):
+		#self.message_loop(self.onMessage)
+		t = Thread(target=self.__specfunc)
+		t.daemon = True
+		t.start()
+
+	def __specfunc(self):
+		syncLock.acquire()
 		self.message_loop(self.onMessage)
+		syncLock.release()
 
 	def getChatMember(self,*args):
 		return self.bot.getChatMember(*args)
@@ -157,13 +167,18 @@ class group_cache_class:
 	def __init__(self):
 		self.g = dict()
 
-	def load(self):
+	def load(self,init=False):
+		Log.debug(2,'Entering group_cache_class.load()')
 		self.__init__()
 		with MainDatabase() as db:
 			result = db.query("SELECT * FROM `welcomemsg`")
 			Log.debug(1,'in group_cache_class.load(): [exp(not result) = {}]',not result)
 		for x in result:
 			self.add(x)
+		if init:
+			syncLock.release()
+		Log.info('Load welcomemsg table successful.')
+		Log.debug(2,'Exiting group_cache_class.load()')
 
 	def add(self,x,need_check_admin=True,not_found=False):
 		global bot
@@ -247,10 +262,11 @@ def main():
 	Log.info('Strat initializing....')
 	Log.info('Debug enable: {}',Log.get_debug_info()[0])
 	Log.debug(1,'Debug level: {}',Log.get_debug_info()[1])
+	syncLock.acquire()
 	bot = bot_class()
 	Log.info('Initializing other cache')
 	group_cache = group_cache_class()
-	group_cache.load()
+	group_cache.load(init=True)
 	poem_cache = poem_class()
 	Log.info('Bot is now running!')
 	while True:
