@@ -11,6 +11,7 @@ import libpy.Log as Log
 import re,urllib2,random
 from libpy.Config import Config
 from threading import Lock,Thread
+import libpy.BackupSQL as BackupSQL
 from base64 import b64encode,b64decode
 from libpy.TgBotLib import telepot_bot
 from libpy.MainDatabase import MainDatabase
@@ -269,6 +270,9 @@ def main():
 	group_cache.load(init=True)
 	poem_cache = poem_class()
 	Log.info('Bot is now running!')
+	Log.info('Starting BackupSQL daemon')
+	BackupSQL.sql_backup_daemon().start()
+	Log.info('BackupSQL daemon is now running')
 	while True:
 		time.sleep(30)
 
@@ -277,5 +281,8 @@ def init():
 	sys.setdefaultencoding('utf8')
 
 if __name__ == '__main__':
-	init()
-	main()
+	if len(sys.argv) > 1 and sys.argv[1] == '--restore':
+		BackupSQL.restore_sql()
+	else:
+		init()
+		main()
