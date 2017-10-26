@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
+# main.py
+# Copyright (C) 2017 Too-Naive and contributors
 #
-#This source code was published under GPL v3
-#
-#Copyright (C) 2017 Too-Naive
-#
+# This module is part of gu-cycle-bot and is released under
+# the GPL v3 License: https://www.gnu.org/licenses/gpl-3.0.txt
+from __feature__ import unicode_literals
 import sys
 import time
 import telepot
@@ -51,7 +52,7 @@ class bot_class(telepot_bot):
 		return self.bot.getChatMember(*args)
 
 	def onMessage(self,msg):	
-		global bot,group_cache,poem_cache
+		global group_cache,poem_cache
 		Log.debug(3,'Incoming message')
 		while True:
 			try:
@@ -90,7 +91,7 @@ class bot_class(telepot_bot):
 								parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 						return
 					return
-				if bot.getChatMember(chat_id,msg['from']['id'])['status'] not in admin_type:
+				if self.getChatMember(chat_id,msg['from']['id'])['status'] not in admin_type:
 					if not group_cache.get(chat_id)['ignore_err']:
 						self.sendMessage(chat_id,'Permission Denied.\n你没有权限，快滚',
 							reply_to_message_id=msg['message_id'])
