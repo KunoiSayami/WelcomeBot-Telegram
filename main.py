@@ -54,18 +54,7 @@ class bot_class(telepot_bot):
 	def onMessage(self,msg):	
 		global group_cache,poem_cache
 		Log.debug(3,'Incoming message')
-		while True:
-			try:
-				Log.debug(2,'Calling telepot.glance()')
-				content_type, chat_type, chat_id = telepot.glance(msg)
-				Log.debug(2,'Exiting telepot.glance() [content_type = {}, chat_type = {}, chat_id = {}]',
-					content_type, chat_type, chat_id)
-				break
-			except telepot.exception.TelegramError as e:
-				raise e
-			except Exception as e:
-				Log.error('Exception {} occurred',e.__name__)
-				time.sleep(0.03)
+		content_type, chat_type, chat_id = self.glance(msg)
 		if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == self.getid():
 			is_admin = group_cache.add((chat_id,None))
 			assert(is_admin != -1)
