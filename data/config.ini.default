@@ -18,3 +18,16 @@ print_err = stderr
 log_debug = false
 print_debug = 
 debug_lvl = 1
+
+[encrypt]
+require_strong_key = false
+key = 
+associated_data =
+
+[git]
+source =
+branch = 
+filename = groupwelcome.sql
+ssh_key = 
+ssh_passwd = 
+backup_cycle = 3600
