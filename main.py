@@ -2,7 +2,7 @@
 # main.py
 # Copyright (C) 2017 Too-Naive and contributors
 #
-# This module is part of gu-cycle-bot and is released under
+# This module is part of WelcomeBot-Telegram and is released under
 # the GPL v3 License: https://www.gnu.org/licenses/gpl-3.0.txt
 from __future__ import unicode_literals
 import sys
