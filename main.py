@@ -38,7 +38,7 @@ poem_cache = None
 
 # To delete this assert, please check line 44: os.getloadavg()
 import platform
-assert platform.system() != 'Linux'
+assert platform.system() == 'Linux'
 
 def getloadavg():
 	r = os.getloadavg()
