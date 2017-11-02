@@ -5,14 +5,37 @@ A bot can receive new chat member then show the welcome message
 
 ## Acceptable command
 
+**Remember: Bot only receive admins' and owner's command**
+
 Command | Parameter(s) | Description
 ----|--|---
 `/setwelcome` | `(gist link \| markdown text)` | Set welcome message
-`/setflag ` | `(poemable\|ignore_err) (1\|0)` | Setting bot flags
-`/reload` | (None) | Reload all configure and welcome message (Restrict to bot owner)
-`/clear` | (None) | Clear setting welcome message
-`/ping` | (None) | Return current session information
-`/poem` | (None) | Read poetry (TBD)
+`/setflag ` | `(flags) (1\|0)` | Setting bot flags
+`/clear` | N/A | Clear setting welcome message
+`/ping` | N/A | Return current session information
+`/poem` | N/A | Read poetry (TBD)
+
+### Flags detail
+
+Flag | Description
+---|---
+poemable | Switch enable poem function for this group
+ignore_err | Show more message to no privilege member who using bot command
+
+
+#### Example
+
+Set welcome message to **Welcome to my group**:
+```
+/setwelcome **welcome to my group**
+```
+
+After you run this command, bot will reply your a message
+
+Clear welcome message:
+```
+/clear
+```
 
 ## Installation
 
@@ -51,4 +74,8 @@ git submodule update
 git pull
 git submodule update
 ```
+
+#### If Bot is group admin
+If bot is group admin, other member who not admin or owner using command will receive
+1 minute cold down (need ban user privilege)
 

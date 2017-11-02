@@ -139,8 +139,8 @@ class bot_class(telepot_bot):
 					self.sendMessage(chat_id,"*Set flag \"%s\" to \"%d\" successfully!*"%(str(result.group(2)),int(result.group(3))),
 						parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 					return
-				self.sendMessage(chat_id,'*Current chat_id:{}\nYour id:{}\nBot runtime:{}\nSystem load avg: {}*'.format(
-					chat_id, msg['from']['id'], Log.get_runtime(), getloadavg),
+				self.sendMessage(chat_id,'*Current chat_id:{}\nYour id:{}\nBot runtime: {}\nSystem load avg: {}*'.format(
+					chat_id, msg['from']['id'], Log.get_runtime(), getloadavg()),
 					parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 			elif content_type in content_type_concerned:
 				result = group_cache.get(chat_id)['msg']
