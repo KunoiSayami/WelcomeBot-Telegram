@@ -1,5 +1,6 @@
 [bot]
 bot_token = 
+owner = 
 
 [database]
 charset = utf8

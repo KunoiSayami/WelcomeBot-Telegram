@@ -2,7 +2,21 @@
 
 A bot can receive new chat member then show the welcome message
 
-## Runtime environment
+
+## Acceptable command
+
+Command | Description
+----|-----
+`/setwelcome (gist link \| markdown text)` | Set welcome message
+`/setflag (poemable\|ignore_err) (1\|0)` | Setting bot flags
+`/reload` | Reload all configure and welcome message (Restrict to bot owner)
+`/clear` | Clear setting welcome message
+`/ping` | Return current session information
+`/poem` | Read poetry (TBD)
+
+## Installation
+
+### Runtime environment
 
 In principle, need python 2.7.x interpreter and mysql database
 
@@ -10,13 +24,13 @@ The following libraries are required:
 * telepot
 * MySQLdb
 
-## First use
+### First use
 
 * Copy `data/config.ini.default` to `data/config.ini`
 * Change the database configure and telegram bot token in `config.ini`
 * Import `groupwelcome.sql` to database which you will connect
 
-## Run
+### Run
 
 After configure, you can using ./start.sh to run this bot
 

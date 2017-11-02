@@ -56,7 +56,7 @@ class bot_class(telepot_bot):
 		Log.debug(3,'Incoming message')
 		content_type, chat_type, chat_id = self.glance(msg)
 		if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == self.getid():
-			is_admin = group_cache.add((chat_id,None))
+			is_admin = group_cache.add((chat_id,None,0,1))
 			assert(is_admin != -1)
 			with MainDatabase() as db:
 				db.execute("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
@@ -110,7 +110,7 @@ class bot_class(telepot_bot):
 						parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 					return
 				result = reloadcommand_match.match(msg['text'])
-				if result:
+				if result and msg['from']['id'] == Config.bot.owner:
 					group_cache.load()
 					poem_cache.reload()
 					self.sendMessage(chat_id,"*Reload configuration and poem successfully!*",
