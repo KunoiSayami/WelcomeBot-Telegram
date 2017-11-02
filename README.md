@@ -5,14 +5,14 @@ A bot can receive new chat member then show the welcome message
 
 ## Acceptable command
 
-Command | Description
-----|-----
-`/setwelcome (gist link \| markdown text)` | Set welcome message
-`/setflag (poemable\|ignore_err) (1\|0)` | Setting bot flags
-`/reload` | Reload all configure and welcome message (Restrict to bot owner)
-`/clear` | Clear setting welcome message
-`/ping` | Return current session information
-`/poem` | Read poetry (TBD)
+Command | Parameter(s) | Description
+----|--|---
+`/setwelcome` | `(gist link \| markdown text)` | Set welcome message
+`/setflag ` | `(poemable\|ignore_err) (1\|0)` | Setting bot flags
+`/reload` | (None) | Reload all configure and welcome message (Restrict to bot owner)
+`/clear` | (None) | Clear setting welcome message
+`/ping` | (None) | Return current session information
+`/poem` | (None) | Read poetry (TBD)
 
 ## Installation
 

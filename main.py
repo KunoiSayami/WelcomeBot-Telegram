@@ -36,6 +36,14 @@ flag_type = ['poemable','ignore_err']
 group_cache = None
 poem_cache = None
 
+# To delete this assert, please check line 44: os.getloadavg()
+import platform
+assert platform.system() != 'Linux'
+
+def getloadavg():
+	r = os.getloadavg()
+	return '{} {} {}'.format(r[0],r[1],r[2])
+
 class bot_class(telepot_bot):
 	def custom_init(self,*args,**kwargs):
 		#self.message_loop(self.onMessage)
@@ -110,7 +118,11 @@ class bot_class(telepot_bot):
 						parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 					return
 				result = reloadcommand_match.match(msg['text'])
-				if result and msg['from']['id'] == Config.bot.owner:
+				if result :
+					if msg['from']['id'] != Config.bot.owner:
+						self.sendMessage(chat_id,"*Please contant owner to reload configuration*",
+							parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+						return
 					group_cache.load()
 					poem_cache.reload()
 					self.sendMessage(chat_id,"*Reload configuration and poem successfully!*",
@@ -127,7 +139,8 @@ class bot_class(telepot_bot):
 					self.sendMessage(chat_id,"*Set flag \"%s\" to \"%d\" successfully!*"%(str(result.group(2)),int(result.group(3))),
 						parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 					return
-				self.sendMessage(chat_id,'*Current chat_id:%d\nYour id:%d*'%(chat_id,msg['from']['id']),
+				self.sendMessage(chat_id,'*Current chat_id:{}\nYour id:{}\nBot runtime:{}\nSystem load avg: {}*'.format(
+					chat_id, msg['from']['id'], Log.get_runtime(), getloadavg),
 					parse_mode='Markdown',reply_to_message_id=msg['message_id'])
 			elif content_type in content_type_concerned:
 				result = group_cache.get(chat_id)['msg']
