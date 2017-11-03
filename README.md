@@ -16,11 +16,11 @@ Command | Parameter(s) | Description
 
 ### Flags detail
 
-Flag | Description
----|---
-poemable | Switch enable poem function for this group
-ignore_err | Show more message to no privilege member who using bot command
-
+Flag | Description | Default status
+---|----|---
+poemable | Switch enable poem function for this group | False
+ignore_err | Show more message to no privilege member who using bot command | True
+noblue | While bot is admin, it will delete bot command after 5 seconds (need delete privilege) | False 
 
 ### Example
 

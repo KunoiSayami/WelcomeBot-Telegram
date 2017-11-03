@@ -15,14 +15,9 @@
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
-DROP DATABASE IF EXISTS `groupwelcome`;
-CREATE DATABASE `groupwelcome` CHARACTER SET 'utf8' COLLATE 'utf8_general_ci';
-USE `groupwelcome`;
-
 --
 -- Table structure for table `poem`
 --
-
 
 DROP TABLE IF EXISTS `poem`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -43,8 +38,9 @@ DROP TABLE IF EXISTS `welcomemsg`;
 CREATE TABLE `welcomemsg` (
   `group_id` bigint(20) NOT NULL,
   `msg` text,
-  `poemable` tinyint(3) NOT NULL DEFAULT '0',
-  `ignore_err` tinyint(3) NOT NULL DEFAULT '1',
+  `poemable` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `ignore_err` tinyint(3) unsigned NOT NULL DEFAULT '1',
+  `noblue` tinyint(3) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -58,4 +54,4 @@ CREATE TABLE `welcomemsg` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2017-10-11 12:25:38
+-- Dump completed on 2017-11-04  4:17:34
