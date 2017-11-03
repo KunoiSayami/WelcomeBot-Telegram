@@ -37,7 +37,7 @@ flag_type = ['poemable','ignore_err']
 group_cache = None
 poem_cache = None
 
-# To delete this assert, please check line 44: os.getloadavg()
+# To delete this assert, please check line 45: os.getloadavg()
 import platform
 assert platform.system() == 'Linux'
 
@@ -60,7 +60,7 @@ class bot_class(telepot_bot):
 	def getChatMember(self,*args):
 		return self.bot.getChatMember(*args)
 
-	def onMessage(self,msg):	
+	def onMessage(self,msg):
 		global group_cache,poem_cache
 		Log.debug(3,'Incoming message')
 		content_type, chat_type, chat_id = self.glance(msg)

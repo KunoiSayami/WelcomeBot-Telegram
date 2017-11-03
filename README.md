@@ -2,7 +2,6 @@
 
 A bot can receive new chat member then show the welcome message
 
-
 ## Acceptable command
 
 **Remember: Bot only receive admins' and owner's command**
@@ -23,14 +22,18 @@ poemable | Switch enable poem function for this group
 ignore_err | Show more message to no privilege member who using bot command
 
 
-#### Example
+### Example
 
 Set welcome message to **Welcome to my group**:
 ```
-/setwelcome **welcome to my group**
+/setwelcome **Welcome to my group**
+```
+or
+```
+/setwelcome https://gist.githubusercontent.com/anonymous/a196757970b0358db6e69f4cc8413ce5/raw/1a548bf3c2d1c7d38cd1fde70c6a612b5d58f524/welcomemsg
 ```
 
-After you run this command, bot will reply your a message
+_After you run this command, bot will reply your a message_
 
 Clear welcome message:
 ```
