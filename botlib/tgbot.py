@@ -7,11 +7,13 @@
 from __future__ import unicode_literals
 import os
 import time
+import MySQLdb
+import traceback
 import re,urllib2
 import libpy.Log as Log
+import telepot.exception
 from libpy.Config import Config
 from threading import Lock,Thread
-import telepot.exception
 from libpy.TgBotLib import telepot_bot
 from base64 import b64encode,b64decode
 from botlib.poemcache import poem_class
@@ -88,13 +90,22 @@ class bot_class(telepot_bot):
 		if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == self.getid():
 			self.gcache.add((chat_id,None,0,1,0))
 			with MainDatabase() as db:
-				db.execute("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
+				try:
+					db.execute("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
+				except MySQLdb.IntegrityError as e:
+					if e[0] == 1062:
+						Log.error('IntegrityError:{}',e[1])
+					else:
+						traceback.print_exc()
+						raise e
+			self.sendMessage(chat_id,'Please using /setwelcome to setting welcome message',
+				reply_to_message_id=msg['message_id'])
 			return
 		if content_type == 'left_chat_member' and msg['left_chat_member']['id'] == self.getid():
 			self.gcache.delete(chat_id)
 			return
 		if msg['chat']['type'] in group_type:
-			if content_type=='text' and msg['text'][0] =='/':
+			if content_type=='text' and msg['entities']['type'] == 'bot_command': #msg['text'][0] =='/':
 
 				get_result = self.gcache.get(chat_id)
 				if get_result['noblue']:
@@ -184,7 +195,6 @@ class bot_class(telepot_bot):
 					self.sendMessage(chat_id,'*Current chat_id:{}\nYour id:{}\nBot runtime: {}\nSystem load avg: {}*'.format(
 						chat_id, msg['from']['id'], Log.get_runtime(), getloadavg()),
 						parse_mode='Markdown',reply_to_message_id=msg['message_id'])
-
 
 			elif content_type in content_type_concerned:
 				result = self.gcache.get(chat_id)['msg']
