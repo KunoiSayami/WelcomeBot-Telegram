@@ -46,7 +46,7 @@ class group_cache_class:
 					if not not_found:
 						self.__db_del(x[0])
 						Log.error('Delete not found chat:{}',x[0])
-					Log.error('in group_cache_class.add() chat_id : {} not found',chat_id)
+					Log.error('in group_cache_class.add() chat_id : {} not found',x[0])
 				elif e[0] == 'Forbidden: bot is not a member of the supergroup chat':
 					self.__db_del(x[0])
 					Log.error('Delete kicked chat:{}', x[0])
