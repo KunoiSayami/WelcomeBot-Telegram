@@ -88,6 +88,7 @@ class bot_class(telepot_bot):
 		Log.debug(3,'Incoming message')
 		content_type, chat_type, chat_id = self.glance(msg)
 		Log.debug(3, '[msg = {}]', msg)
+		# Added process
 		if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == self.getid():
 			self.gcache.add((chat_id,None,0,1,0))
 			with MainDatabase() as db:
@@ -102,13 +103,15 @@ class bot_class(telepot_bot):
 			self.sendMessage(chat_id,'Please using /setwelcome to setting welcome message',
 				reply_to_message_id=msg['message_id'])
 			return
+		# kicked process
 		if content_type == 'left_chat_member' and msg['left_chat_member']['id'] == self.getid():
 			self.gcache.delete(chat_id)
 			return
+		# Main process
 		if msg['chat']['type'] in group_type:
 			if content_type == 'text' and 'entities' in msg and msg[
-				'entities'][0]['type'] == 'bot_command': #msg['text'][0] =='/':
-
+				'entities'][0]['type'] == 'bot_command' and msg[
+					'text'][0] == '/': # Prevent suchas './sudo'
 				get_result = self.gcache.get(chat_id)
 				if get_result['noblue']:
 					delete_target_message(self.bot,chat_id,msg['message_id']).start()
@@ -201,5 +204,5 @@ class bot_class(telepot_bot):
 			elif content_type in content_type_concerned:
 				result = self.gcache.get(chat_id)['msg']
 				if result:
-					self.sendMessage(chat_id,b64decode(result),parse_mode='Markdown',
-						disable_web_page_preview=True,reply_to_message_id=msg['message_id'])
+					self.sendMessage(chat_id,b64decode(result).replace('$name',msg['new_chat_participant']['first_name']),
+						parse_mode='Markdown',disable_web_page_preview=True,reply_to_message_id=msg['message_id'])

@@ -14,6 +14,15 @@ Command | Parameter(s) | Description
 `/ping` | N/A | Return current session information
 `/poem` | N/A | Read poetry (TBD)
 
+### Placeholder
+
+Bot is now support placeholder, using them in welcome message, 
+bot will auto-replace them to what you wish
+
+Placeholder | Replace to
+---|----
+`$name` | new user first name
+
 ### Flags detail
 
 Flag | Description | Default status
@@ -24,13 +33,13 @@ noblue | While bot is admin, it will delete bot command after 5 seconds (need de
 
 ### Example
 
-Set welcome message to **Welcome to my group**:
+Set welcome message to **Welcome [who] to my group**:
 ```
-/setwelcome **Welcome to my group**
+/setwelcome **Welcome $name to my group**
 ```
 or
 ```
-/setwelcome https://gist.githubusercontent.com/anonymous/a196757970b0358db6e69f4cc8413ce5/raw/1a548bf3c2d1c7d38cd1fde70c6a612b5d58f524/welcomemsg
+/setwelcome https://gist.githubusercontent.com/anonymous/6446fbae52916bc7fb092dd1ee3f8483/raw/4ad5231d5e2a68458e117db9bed97407dfe6f47b/welcomemsg
 ```
 
 _After you run this command, bot will reply your a message_

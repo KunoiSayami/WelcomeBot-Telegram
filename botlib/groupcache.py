@@ -41,6 +41,7 @@ class group_cache_class:
 				if not not_found:
 					self.__db_del(x[0])
 					Log.info('Delete kicked chat:{}',x[0])
+					return
 			except telepot.exception.TelegramError as e:
 				if e[0] == 'Bad Request: chat not found':
 					if not not_found:
@@ -52,6 +53,8 @@ class group_cache_class:
 					Log.error('Delete kicked chat:{}', x[0])
 				else:
 					raise e
+			finally:
+				result = 0
 		else:
 			result = 0
 		self.g[x[0]]={'msg' : x[1],

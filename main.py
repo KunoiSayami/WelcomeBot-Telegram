@@ -13,11 +13,10 @@ from botlib.tgbot import bot_class
 import libpy.BackupSQL as BackupSQL
 
 def main():
-	global bot,group_cache,poem_cache
 	Log.info('Strat initializing....')
 	Log.info('Debug enable: {}',Log.get_debug_info()[0])
 	Log.debug(1,'Debug level: {}',Log.get_debug_info()[1])
-	bot = bot_class()
+	bot_class()
 	Log.info('Bot is now running!')
 	Log.info('Starting BackupSQL daemon')
 	BackupSQL.sql_backup_daemon().start()
