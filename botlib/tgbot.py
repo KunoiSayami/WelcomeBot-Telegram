@@ -43,8 +43,13 @@ def getloadavg():
 	r = os.getloadavg()
 	return '{} {} {}'.format(r[0],r[1],r[2])
 
-def username_cut(first_name):
-	return first_name if len(first_name) <= 10 else first_name[:10]+'...'
+markdown_symbols = ['_','*','~','#']
+def username_splice_and_fix(f):
+	name = '{} {}'.format(f['first_name'],f['last_name']) if last_name in f else f['first_name']
+	name = name if len(name) <= 20 else name[:20]+'...'
+	for x in markdown_symbols:
+		name.replace(x,'')
+	return name
 
 class delete_target_message(Thread):
 	def __init__(self,bot,chat_id,message_id):
@@ -54,7 +59,6 @@ class delete_target_message(Thread):
 		self.bot = bot
 		self.target = (chat_id,message_id)
 		Log.debug(2,'Exiting delete_target_message.__init__()')
-
 
 	def run(self):
 		Log.debug(2,'Entering delete_target_message.run()')
@@ -208,5 +212,5 @@ class bot_class(telepot_bot):
 			elif content_type in content_type_concerned:
 				result = self.gcache.get(chat_id)['msg']
 				if result:
-					self.sendMessage(chat_id,b64decode(result).replace('$name',username_cut(msg['new_chat_participant']['first_name'])),
+					self.sendMessage(chat_id,b64decode(result).replace('$name',username_splice_and_fix(msg['new_chat_participant'])),
 						parse_mode='Markdown',disable_web_page_preview=True,reply_to_message_id=msg['message_id'])
