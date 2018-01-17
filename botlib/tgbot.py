@@ -45,7 +45,7 @@ def getloadavg():
 
 markdown_symbols = ['_','*','~','#']
 def username_splice_and_fix(f):
-	name = '{} {}'.format(f['first_name'],f['last_name']) if last_name in f else f['first_name']
+	name = '{} {}'.format(f['first_name'],f.get('last_name',''))
 	name = name if len(name) <= 20 else name[:20]+'...'
 	for x in markdown_symbols:
 		name.replace(x,'')
