@@ -41,34 +41,32 @@ assert platform.system() == 'Linux'
 
 def getloadavg():
 	r = os.getloadavg()
-	return '{} {} {}'.format(r[0],r[1],r[2])
+	return '{} {} {}'.format(r[0], r[1], r[2])
 
-markdown_symbols = ['_','*','~','#']
+markdown_symbols = ['_','*','~','#','^','&']
 def username_splice_and_fix(f):
-	name = '{} {}'.format(f['first_name'],f.get('last_name',''))
+	name = '{}'.format(f['first_name'])
+	if 'last_name' in f:
+		name += ' {}'.format(f['last_name'])
 	name = name if len(name) <= 20 else name[:20]+'...'
 	for x in markdown_symbols:
-		name.replace(x,'')
+		name.replace( x, '')
 	return name
 
 class delete_target_message(Thread):
-	def __init__(self,bot,chat_id,message_id):
-		Log.debug(2,'Entering delete_target_message.__init__()')
+	def __init__(self, bot, chat_id, message_id):
 		Thread.__init__(self)
 		self.daemon = True
 		self.bot = bot
 		self.target = (chat_id,message_id)
-		Log.debug(2,'Exiting delete_target_message.__init__()')
 
 	def run(self):
-		Log.debug(2,'Entering delete_target_message.run()')
 		time.sleep(5)
 		try:
 			self.bot.deleteMessage(self.target)
 		except telepot.exception.TelegramError as e:
 			if e[1] == 400:
 				pass
-		Log.debug(2,'Exiting delete_target_message.run()')
 
 class bot_class(telepot_bot):
 	def custom_init(self,*args,**kwargs):
@@ -82,6 +80,7 @@ class bot_class(telepot_bot):
 		self.gcache = group_cache_class(bot=self,init=True)
 		self.gcache.load(init=True,syncLock=self.syncLock)
 		self.pcache = poem_class()
+		self.bot.sendMessage(chat_id,'Markdown configure error, check settings or contact bot administrator if you think you are right')
 
 	def __specfunc(self):
 		self.syncLock.acquire()
@@ -97,13 +96,13 @@ class bot_class(telepot_bot):
 		Log.debug(3, '[msg = {}]', msg)
 		# Added process
 		if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == self.getid():
-			self.gcache.add((chat_id,None,0,1,0))
+			self.gcache.add((chat_id, None, 0, 1, 0))
 			with MainDatabase() as db:
 				try:
 					db.execute("INSERT INTO `welcomemsg` (`group_id`) VALUES (%d)"%chat_id)
 				except MySQLdb.IntegrityError as e:
 					if e[0] == 1062:
-						Log.error('IntegrityError:{}',e[1])
+						Log.error('IntegrityError:{}', e[1])
 					else:
 						traceback.print_exc()
 						raise e
@@ -122,7 +121,7 @@ class bot_class(telepot_bot):
 					'entities'][0]['type'] == 'bot_command' and msg[
 						'text'][0] == '/': # Prevent suchas './sudo'
 					if get_result['noblue']:
-						delete_target_message(self.bot,chat_id,msg['message_id']).start()
+						delete_target_message(self.bot, chat_id, msg['message_id']).start()
 
 					# Match bot command check
 					if command_match.match(msg['text']):
@@ -134,22 +133,22 @@ class bot_class(telepot_bot):
 								result = self.pcache.get()
 								if not result:
 									result = b64encode('TBD')
-								self.sendMessage(chat_id,b64decode(result),
+								self.sendMessage(chat_id, b64decode(result),
 									reply_to_message_id=msg['message_id'])
 								return
 							elif not get_result['ignore_err']:
-								self.sendMessage(chat_id,'Permission Denied.\n*你没有资格念他的诗，你给我出去*',
-										parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+								self.sendMessage(chat_id, 'Permission Denied.\n*你没有资格念他的诗，你给我出去*',
+										parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 								return
 							return
 
 						# Other command need admin privilege, check it.
 						if self.getChatMember(chat_id,msg['from']['id'])['status'] not in admin_type:
 							if not get_result['ignore_err']:
-								self.sendMessage(chat_id,'Permission Denied.\n你没有权限，快滚',
+								self.sendMessage(chat_id, 'Permission Denied.\n你没有权限，快滚',
 									reply_to_message_id=msg['message_id'])
 							if self.gcache.get_is_admin(chat_id):
-								self.bot.restrictChatMember(chat_id,msg['from']['id'],until_date=msg['date']+60)
+								self.bot.restrictChatMember(chat_id, msg['from']['id'], until_date=msg['date']+60)
 							return
 
 						# Match /setwelcome command
@@ -162,33 +161,33 @@ class bot_class(telepot_bot):
 								welcomemsg = r.read()
 								r.close()
 							if len(welcomemsg) > 4096:
-								self.sendMessage(chat_id,"*Error*:Welcome message is too long.(len() must smaller than 4096)",
-									parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+								self.sendMessage(chat_id, "*Error*:Welcome message is too long.(len() must smaller than 4096)",
+									parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 								return
-							self.gcache.edit((chat_id,b64encode(welcomemsg)))
-							self.sendMessage(chat_id,"*Set welcome message to:*\n%s"%welcomemsg,
-								disable_web_page_preview=True,parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+							self.gcache.edit((chat_id, b64encode(welcomemsg)))
+							self.sendMessage(chat_id, "*Set welcome message to:*\n%s"%welcomemsg,
+								disable_web_page_preview=True, parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 							return
 
 						# Match /clear command
 						result = clearcommand_match.match(msg['text'])
 						if result:
 							self.gcache.edit((chat_id,None))
-							self.sendMessage(chat_id,"*Clear welcome message successfully!*",
-								parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+							self.sendMessage(chat_id, "*Clear welcome message successfully!*",
+								parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 							return
 
 						# Match /reload command
 						result = reloadcommand_match.match(msg['text'])
 						if result :
 							if msg['from']['id'] != Config.bot.owner:
-								self.sendMessage(chat_id,"*Please contant owner to reload configuration*",
-									parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+								self.sendMessage(chat_id, "*Please contant owner to reload configuration*",
+									parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 								return
 							self.gcache.load()
 							self.pcache.reload()
-							self.sendMessage(chat_id,"*Reload configuration and poem successfully!*",
-								parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+							self.sendMessage(chat_id, "*Reload configuration and poem successfully!*",
+								parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 							return
 
 						# Match /setflag command
@@ -196,21 +195,21 @@ class bot_class(telepot_bot):
 						if result:
 							if str(result.group(2)) not in flag_type:
 								if not get_result['ignore_err']:
-									self.sendMessage(chat_id,"*Error*: Flag \"%s\" not exist"%str(result.group(2)),
-										parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+									self.sendMessage(chat_id, "*Error*: Flag \"%s\" not exist"%str(result.group(2)),
+										parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 								return
 							self.gcache.editflag((chat_id,str(result.group(2)),int(result.group(3))))
-							self.sendMessage(chat_id,"*Set flag \"%s\" to \"%d\" successfully!*"%(str(result.group(2)),int(result.group(3))),
-								parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+							self.sendMessage(chat_id, "*Set flag \"%s\" to \"%d\" successfully!*"%(str(result.group(2)), int(result.group(3))),
+								parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 							return
 
 						# Finally match /ping
-						self.sendMessage(chat_id,'*Current chat_id:{}\nYour id:{}\nBot runtime: {}\nSystem load avg: {}*'.format(
+						self.sendMessage(chat_id, '*Current chat_id:{}\nYour id:{}\nBot runtime: {}\nSystem load avg: {}*'.format(
 							chat_id, msg['from']['id'], Log.get_runtime(), getloadavg()),
-							parse_mode='Markdown',reply_to_message_id=msg['message_id'])
+							parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 
 			elif content_type in content_type_concerned:
 				result = self.gcache.get(chat_id)['msg']
 				if result:
-					self.sendMessage(chat_id,b64decode(result).replace('$name',username_splice_and_fix(msg['new_chat_participant'])),
-						parse_mode='Markdown',disable_web_page_preview=True,reply_to_message_id=msg['message_id'])
+					self.sendMessage(chat_id, b64decode(result).replace('$name',username_splice_and_fix(msg['new_chat_participant'])),
+						parse_mode='Markdown', disable_web_page_preview=True, reply_to_message_id=msg['message_id'])
