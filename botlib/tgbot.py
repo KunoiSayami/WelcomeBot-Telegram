@@ -21,7 +21,7 @@ from libpy.MainDatabase import MainDatabase
 from botlib.groupcache import group_cache_class
 
 
-command_match = re.compile(r'^\/(clear|setwelcome|ping|reload|poem|setflag)(@[a-zA-Z_]*bot)?')
+command_match = re.compile(r'^\/(clear|setwelcome|ping|reload|poem|setflag)(@[a-zA-Z_]*bot)?\s?')
 setcommand_match = re.compile(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')
 gist_match = re.compile(r'^https:\/\/gist.githubusercontent.com\/.+\/[a-z0-9]{32}\/raw\/[a-z0-9]{40}\/.*$')
 clearcommand_match = re.compile(r'^\/clear(@[a-zA-Z_]*bot)?$')
@@ -37,13 +37,13 @@ flag_type = ['poemable','ignore_err','noblue']
 
 # To delete this assert, please check line 43: os.getloadavg()
 import platform
-assert platform.system() == 'Linux'
+assert platform.system() == 'Linux', 'This program must run in Linux-like systems'
 
 def getloadavg():
-	r = os.getloadavg()
-	return '{} {} {}'.format(r[0], r[1], r[2])
+	return '{} {} {}'.format(*os.getloadavg())
 
-markdown_symbols = ['_','*','~','#','^','&']
+markdown_symbols = ['_', '*', '~', '#', '^', '&', '`']
+
 def username_splice_and_fix(f):
 	name = '{}'.format(f['first_name'])
 	if 'last_name' in f:
@@ -80,7 +80,7 @@ class bot_class(telepot_bot):
 		self.gcache = group_cache_class(bot=self,init=True)
 		self.gcache.load(init=True,syncLock=self.syncLock)
 		self.pcache = poem_class()
-		self.bot.sendMessage(chat_id,'Markdown configure error, check settings or contact bot administrator if you think you are right')
+		self.fail_with_md = 'Markdown configure error, check settings or contact bot administrator if you think you are right'
 
 	def __specfunc(self):
 		self.syncLock.acquire()
@@ -204,9 +204,10 @@ class bot_class(telepot_bot):
 							return
 
 						# Finally match /ping
-						self.sendMessage(chat_id, '*Current chat_id:{}\nYour id:{}\nBot runtime: {}\nSystem load avg: {}*'.format(
-							chat_id, msg['from']['id'], Log.get_runtime(), getloadavg()),
-							parse_mode='Markdown', reply_to_message_id=msg['message_id'])
+						if result = pingcommand_match(msg['text']):
+							self.sendMessage(chat_id, '*Current chat_id:* `{}`\n*Your id:* `{}`\n*Bot runtime: {}\nSystem load avg: {}*'.format(
+								chat_id, msg['from']['id'], Log.get_runtime(), getloadavg()),
+								parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 
 			elif content_type in content_type_concerned:
 				result = self.gcache.get(chat_id)['msg']
