@@ -82,7 +82,7 @@ class group_cache_class:
 		except KeyError:
 			Log.error('Can\'t find {} in get()',chat_id)
 			bot.sendMessage(chat_id,'It\'s seems that database broken, please reset welcome message.')
-			self.add((chat_id,None,0,1),not_found=True)
+			self.add((chat_id,None,0,1,1),not_found=True)
 			self.__db_add(chat_id)
 			return {'msg':None}
 
