@@ -3,7 +3,7 @@
 # Copyright (C) 2017 Too-Naive and contributors
 #
 # This module is part of WelcomeBot-Telegram and is released under
-# the GPL v3 License: https://www.gnu.org/licenses/gpl-3.0.txt
+# the AGPL v3 License: https://www.gnu.org/licenses/agpl-3.0.txt
 from __future__ import unicode_literals
 import os
 import time
@@ -91,9 +91,8 @@ class bot_class(telepot_bot):
 		return self.bot.getChatMember(*args)
 
 	def onMessage(self,msg):
-		Log.debug(3,'Incoming message')
 		content_type, chat_type, chat_id = self.glance(msg)
-		Log.debug(3, '[msg = {}]', msg)
+
 		# Added process
 		if content_type == 'new_chat_member' and msg['new_chat_participant']['id'] == self.getid():
 			self.gcache.add((chat_id, None, 0, 1, 0))
@@ -109,12 +108,14 @@ class bot_class(telepot_bot):
 			self.sendMessage(chat_id,'Please using /setwelcome to setting welcome message',
 				reply_to_message_id=msg['message_id'])
 			return
+
 		# kicked process
-		if content_type == 'left_chat_member' and msg['left_chat_member']['id'] == self.getid():
+		elif content_type == 'left_chat_member' and msg['left_chat_member']['id'] == self.getid():
 			self.gcache.delete(chat_id)
 			return
+
 		# Main process
-		if msg['chat']['type'] in group_type:
+		elif msg['chat']['type'] in group_type:
 			if content_type == 'text':
 				get_result = self.gcache.get(chat_id)
 				if 'entities' in msg and msg[
@@ -172,7 +173,7 @@ class bot_class(telepot_bot):
 						# Match /clear command
 						result = clearcommand_match.match(msg['text'])
 						if result:
-							self.gcache.edit((chat_id,None))
+							self.gcache.edit((chat_id, None))
 							self.sendMessage(chat_id, "*Clear welcome message successfully!*",
 								parse_mode='Markdown', reply_to_message_id=msg['message_id'])
 							return
@@ -204,7 +205,7 @@ class bot_class(telepot_bot):
 							return
 
 						# Finally match /ping
-						if result = pingcommand_match(msg['text']):
+						if pingcommand_match.match(msg['text']):
 							self.sendMessage(chat_id, '*Current chat_id:* `{}`\n*Your id:* `{}`\n*Bot runtime: {}\nSystem load avg: {}*'.format(
 								chat_id, msg['from']['id'], Log.get_runtime(), getloadavg()),
 								parse_mode='Markdown', reply_to_message_id=msg['message_id'])
@@ -212,5 +213,5 @@ class bot_class(telepot_bot):
 			elif content_type in content_type_concerned:
 				result = self.gcache.get(chat_id)['msg']
 				if result:
-					self.sendMessage(chat_id, b64decode(result).replace('$name',username_splice_and_fix(msg['new_chat_participant'])),
+					self.sendMessage(chat_id, b64decode(result).replace('$name', username_splice_and_fix(msg['new_chat_participant'])),
 						parse_mode='Markdown', disable_web_page_preview=True, reply_to_message_id=msg['message_id'])

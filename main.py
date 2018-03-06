@@ -3,7 +3,7 @@
 # Copyright (C) 2017-2018 Too-Naive and contributors
 #
 # This module is part of WelcomeBot-Telegram and is released under
-# the GPL v3 License: https://www.gnu.org/licenses/gpl-3.0.txt
+# the AGPL v3 License: https://www.gnu.org/licenses/agpl-3.0.txt
 from __future__ import unicode_literals
 import sys
 import time

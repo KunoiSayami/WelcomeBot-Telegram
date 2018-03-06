@@ -21,14 +21,16 @@ bot will auto-replace them to what you wish
 
 Placeholder | Replace to
 ---|----
-`$name` | new user first name
+`$name` | user nickname
+
+_Known bug: If user name contains markdown characters may cause markdown error (replace process not work)_
 
 ### Flags detail
 
-Flag | Description | Default status
+Flag | Description | Default
 ---|----|---
 poemable | Switch enable poem function for this group | False
-ignore_err | Show more message to no privilege member who using bot command | True
+ignore_err | Show ~~rude~~ message to no privilege member who using bot command | True
 noblue | While bot is admin, it will delete bot command after 5 seconds (need delete privilege) | False 
 
 ### Example
@@ -76,8 +78,7 @@ After configure, you can using ./start.sh to run this bot
 ```bash
 git clone https://github.com/Too-Naive/WelcomeBot-Telegram.git $TargetFolder
 cd $TargetFolder
-git submodule init
-git submodule update
+git submodule update --init
 ```
 
 #### To pull repo, please use the following code
