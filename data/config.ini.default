@@ -14,6 +14,8 @@ db_name = groupwelcome
 logfile = data/log.log
 log_info = false
 print_info = 
+log_warn = true
+print_warn = stderr
 log_err = true
 print_err = stderr
 log_debug = false
@@ -26,6 +28,7 @@ key =
 associated_data =
 
 [git]
+switch = off
 source =
 branch = 
 filename = groupwelcome.sql

@@ -41,6 +41,8 @@ CREATE TABLE `welcomemsg` (
   `poemable` tinyint(3) unsigned NOT NULL DEFAULT '0',
   `ignore_err` tinyint(3) unsigned NOT NULL DEFAULT '1',
   `noblue` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `other` bigint(20) unsigned NOT NULL DEFAULT '0',
+  `except` VARCHAR(500) NOT NULL DEFAULT 'W10=',
   PRIMARY KEY (`group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;

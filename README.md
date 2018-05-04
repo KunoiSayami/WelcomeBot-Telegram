@@ -32,6 +32,9 @@ Flag | Description | Default
 poemable | Switch enable poem function for this group | False
 ignore_err | Show ~~rude~~ message to no privilege member who using bot command | True
 noblue | While bot is admin, it will delete bot command after 5 seconds (need delete privilege) | False 
+no_new_member | Bot will auto delete \`Joined group' message (system genereted) (need delete privilege) | False
+no_welcome | Bot will auto delete previous welcome message | False
+no_service_msg | Bot will auto delete service message | False
 
 ### Example
 
@@ -69,7 +72,7 @@ The following libraries are required:
 
 ### Run
 
-After configure, you can using ./start.sh to run this bot
+After configure, you can using `./start.sh` to run this bot
 
 ## Hint
 
@@ -92,3 +95,14 @@ git submodule update
 If bot is group admin, other member who not admin or owner using command will receive
 1 minute cold down (need ban user privilege)
 
+## LICENSE
+
+[![](https://www.gnu.org/graphics/agplv3-155x51.png)](https://www.gnu.org/licenses/agpl-3.0.txt)
+   
+Copyright (C) 2017-2018 Too-Naive
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License along with this program. If not, see <https://www.gnu.org/licenses/>.
