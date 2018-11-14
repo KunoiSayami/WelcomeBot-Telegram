@@ -4,6 +4,19 @@
 #
 # This module is part of WelcomeBot-Telegram and is released under
 # the AGPL v3 License: https://www.gnu.org/licenses/agpl-3.0.txt
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import unicode_literals
 import telepot
 import libpy.Log as Log
@@ -73,10 +86,12 @@ class group_cache_class:
 		else:
 			result = 0
 		self.g[x[0]]={'msg': x[1],
-			'is_admin':result,
-			'poemable':x[2],
-			'ignore_err':x[3],
-			'noblue':x[4]}
+			'is_admin': result,
+			'poemable': x[2],
+			'ignore_err': x[3],
+			'noblue': x[4],
+			'other': gc_base_switch(flag_name, x[5]),
+			'except': eval(b64decode(x[6]))}
 
 	def __db_add(self, chat_id):
 		with MainDatabase() as db:
@@ -96,8 +111,7 @@ class group_cache_class:
 			return self.g[chat_id]
 		except KeyError:
 			Log.error('Can\'t find {} in get()',chat_id)
-			bot.sendMessage(chat_id,'It\'s seems that database broken, please reset welcome message.')
-			self.add((chat_id,None,0,1,0),not_found=True)
+			self.add((chat_id, None, 0, 1, 0, 0, b64encode(repr([]))), not_found=True)
 			self.__db_add(chat_id)
 			self.bot.sendMessage(chat_id, 'It\'s seems that database broken, please reset welcome message.')
 			return {'msg':None}

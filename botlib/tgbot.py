@@ -4,19 +4,32 @@
 #
 # This module is part of WelcomeBot-Telegram and is released under
 # the AGPL v3 License: https://www.gnu.org/licenses/agpl-3.0.txt
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
 from __future__ import unicode_literals
 import os
 import time
 import MySQLdb
 import traceback
-import re,urllib2
+import re, urllib2
 import libpy.Log as Log
 import telepot.exception
 from libpy.Config import Config
 from libpy.DiskCache import DiskCache
 from libpy.TgBotLib import telepot_bot
 from base64 import b64encode,b64decode
-from threading import Lock,Thread,Timer
+from threading import Lock, Thread, Timer
 from botlib.poemcache import poem_class
 from libpy.MainDatabase import MainDatabase
 from botlib.groupcache import group_cache_class
@@ -55,9 +68,7 @@ def username_splice_and_fix(f):
 	if 'last_name' in f:
 		name += ' {}'.format(f['last_name'])
 	name = name if len(name) <= 20 else name[:20]+'...'
-	for x in markdown_symbols:
-		name.replace(x, u'\\'+x)
-	return name
+	return ''.join(filter(lambda x: x not in markdown_symbols, name))
 
 class delete_target_message(Thread):
 	def __init__(self, chat_id, message_id, time_delay=5):
@@ -125,7 +136,7 @@ class bot_class(telepot_bot):
 	def getChatMember(self, *args):
 		return self.bot.getChatMember(*args)
 
-	def onMessage(self,msg):
+	def onMessage(self, msg):
 		content_type, chat_type, chat_id = self.glance(msg)
 
 		# Added process
@@ -144,14 +155,28 @@ class bot_class(telepot_bot):
 				reply_to_message_id=msg['message_id'])
 			return
 
-		# kicked process
+		# Kicked process
 		elif content_type == 'left_chat_member' and msg['left_chat_member']['id'] == self.getid():
 			self.gcache.delete(chat_id)
 			return
 
 		# Main process
 		elif msg['chat']['type'] in group_type:
-			if content_type == 'text':
+
+			# Show welcome message
+			if content_type in content_type_concerned:
+				result = self.gcache.get(chat_id)['msg']
+				if self.gcache.get(chat_id)['other']['no_new_member']:
+					delete_target_message(chat_id, msg['message_id'], 3).start()
+				if result:
+					if self.gcache.get(chat_id)['other']['no_welcome'] and \
+						self.external_store.get(chat_id) is not None:
+						delete_target_message(chat_id, self.external_store.get(chat_id), 0).start()
+					self.external_store[chat_id] = self.sendMessage(chat_id, b64decode(result).replace('$name', username_splice_and_fix(msg['new_chat_participant'])),
+						parse_mode='Markdown', disable_web_page_preview=True, reply_to_message_id=msg['message_id']).get('message_id')
+					self.cache.write(self.external_store)
+
+			elif content_type == 'text' and msg['text'][0] == '/':
 				get_result = self.gcache.get(chat_id)
 				result = botcommand_match.match(msg['text'])
 				try:
@@ -241,8 +266,8 @@ class bot_class(telepot_bot):
 						result = clearcommand_match.match(msg['text'])
 						if result:
 							self.gcache.edit((chat_id, None))
-							self.sendMessage(chat_id, "*Clear welcome message successfully!*",
-								parse_mode='Markdown', reply_to_message_id=msg['message_id'])
+							self.sendMessage(chat_id, "*Clear welcome message completed!*",
+								parse_mode='Markdown', reply_to_message_id=msg['message_id'])['message_id']
 							return
 
 						# Match /reload command
@@ -297,12 +322,9 @@ class bot_class(telepot_bot):
 
 						# Finally match /ping
 						if pingcommand_match.match(msg['text']):
-							self.sendMessage(chat_id, '*Current chat_id:* `{}`\n*Your id:* `{}`\n*Bot runtime: {}\nSystem load avg: {}*'.format(
+							delete_target_message(chat_id, self.sendMessage(chat_id, '*Current chat_id:* `{}`\n*Your id:* `{}`\n*Bot runtime: {}\nSystem load avg: {}*'.format(
 								chat_id, msg['from']['id'], Log.get_runtime(), getloadavg()),
 								parse_mode='Markdown', reply_to_message_id=msg['message_id'])['message_id'], 10)
 
-			elif content_type in content_type_concerned:
-				result = self.gcache.get(chat_id)['msg']
-				if result:
-					self.sendMessage(chat_id, b64decode(result).replace('$name', username_splice_and_fix(msg['new_chat_participant'])),
-						parse_mode='Markdown', disable_web_page_preview=True, reply_to_message_id=msg['message_id'])
+			elif content_type in service_msg_type and self.gcache.get(chat_id)['other']['no_service_msg']:
+				delete_target_message(chat_id, msg['message_id'], 0).start()
