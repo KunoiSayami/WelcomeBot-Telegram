@@ -79,7 +79,7 @@ After configure, you can using `./start.sh` to run this bot
 #### To clone repo, please use the following code
 
 ```bash
-git clone https://github.com/Too-Naive/WelcomeBot-Telegram.git $TargetFolder
+git clone https://github.com/KunoiSayami/WelcomeBot-Telegram.git $TargetFolder
 cd $TargetFolder
 git submodule update --init
 ```
@@ -99,7 +99,7 @@ If bot is group admin, other member who not admin or owner using command will re
 
 [![](https://www.gnu.org/graphics/agplv3-155x51.png)](https://www.gnu.org/licenses/agpl-3.0.txt)
    
-Copyright (C) 2017-2018 Too-Naive
+Copyright (C) 2017-2018 KunoiSayami
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
 

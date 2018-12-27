@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # poemcache.py
-# Copyright (C) 2017-2018 Too-Naive and contributors
+# Copyright (C) 2017-2018 KunoiSayami and contributors
 #
 # This module is part of WelcomeBot-Telegram and is released under
 # the AGPL v3 License: https://www.gnu.org/licenses/agpl-3.0.txt

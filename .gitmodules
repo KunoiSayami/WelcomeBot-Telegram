@@ -1,3 +1,3 @@
 [submodule "libpy"]
 	path = libpy
-	url = https://github.com/Too-Naive/libpy
+	url = https://github.com/KunoiSayami/libpy.git
