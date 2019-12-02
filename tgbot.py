@@ -107,12 +107,12 @@ class bot_class:
 	def new_chat_member(self, client: Client, msg: Message):
 		if self.bot_id in msg.new_chat_members:
 			self.groups.insert_group(msg.chat.id)
-			#client.send_message(msg.chat.id, 'Please use /setwelcome to set welcome message', reply_to_message_id=msg.message_id)
-			client.send_message(msg.chat.id, 'This bot is refactoring code, feature may not available during this time', reply_to_message_id=msg.message_id)
+			msg.reply('Please use /setwelcome to set welcome message')
+			#msg.reply('This bot is refactoring code, feature may not available during this time')
 		else:
 			welcome_text = self.groups[msg.chat.id].welcome_text
 			if welcome_text is not None:
-				last_msg = client.send_message(msg.chat.id, welcome_text.replace('$name', parse_user_name(msg.from_user)), 'markdown', True, reply_to_message_id=msg.message_id).message_id
+				last_msg = msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)), 'markdown', True).message_id
 				pervious_msg = self.conn.query_last_message_id(msg.chat.id)
 				self.conn.insert_last_message_id(msg.chat.id, last_msg)
 				if self.groups[msg.chat.id].no_welcome:
@@ -148,18 +148,18 @@ class bot_class:
 			r.raise_for_status()
 			welcomemsg = r.text
 		if len(welcomemsg) > 2048:
-			msg.reply("*Error*:Welcome message is too long.(len() must smaller than 4096)", parse_mode='Mmarkdown')
+			msg.reply("**Error**:Welcome message is too long.(len() must smaller than 4096)", parse_mode='markdown')
 			return
 		p = self.groups[msg.chat.id]
 		p.welcome_text = welcomemsg
 		self.groups.update_group(msg.chat.id, p)
-		msg.reply(f"*Set welcome message to:*\n{welcomemsg}", reply_markup='markdown', disable_web_page_preview=True)
+		msg.reply(f"**Set welcome message to:**\n{welcomemsg}", parse_mode='markdown', disable_web_page_preview=True)
 
 	def clear_welcome_message(self, _client: Client, msg: Message):
 		p = self.groups[msg.chat.id]
 		p.welcome_text = ''
 		self.groups.update_group(msg.chat.id, p)
-		msg.reply("*Clear welcome message completed!*", parse_mode='markdown')
+		msg.reply("**Clear welcome message completed!**", parse_mode='markdown')
 
 	def generate_status_message(self, _client: Client, msg: Message):
 		info = self.groups[msg.chat.id]

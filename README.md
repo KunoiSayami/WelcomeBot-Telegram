@@ -12,9 +12,9 @@ Command | Parameter(s) | Description
 ----|--|---
 `/setwelcome` | `(gist link \| markdown text)` | Set welcome message
 `/clear` | N/A | Clear setting welcome message
+`/ping` | N/A | Return current session information
 <!--
 `/setflag ` | `(flags) (1\|0)` | Setting bot flags
-`/ping` | N/A | Return current session information
 `/poem` | N/A | Read poetry (TBD)
 -->
 ### Placeholder
