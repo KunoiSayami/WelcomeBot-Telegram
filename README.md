@@ -6,27 +6,27 @@ A bot can receive new chat member then show the welcome message
 
 **Remember: Bot only receive admins' and owner's command**
 
-**All command is current unavailable during refactoring code**
-<!--
+**Other command is currently unavailable during refactoring code**
+
 Command | Parameter(s) | Description
 ----|--|---
 `/setwelcome` | `(gist link \| markdown text)` | Set welcome message
-`/setflag ` | `(flags) (1\|0)` | Setting bot flags
 `/clear` | N/A | Clear setting welcome message
+<!--`/setflag ` | `(flags) (1\|0)` | Setting bot flags
 `/ping` | N/A | Return current session information
 `/poem` | N/A | Read poetry (TBD)
-
+-->
 ### Placeholder
 
 Bot is now support placeholder, using them in welcome message, 
 bot will auto-replace them to what you wish
 
 Placeholder | Replace to
----|----i
+---|----
 `$name` | user nickname
 
 _Known bug: If user name contains markdown characters may cause markdown error (replace process not work)_
-
+<!--
 ### Flags detail
 
 Flag | Description | Default
@@ -37,7 +37,7 @@ noblue | While bot is admin, it will delete bot command after 5 seconds (need de
 no_new_member | Bot will auto delete \`Joined group' message (system genereted) (need delete privilege) | False
 no_welcome | Bot will auto delete previous welcome message | False
 no_service_msg | Bot will auto delete service message | False
-
+-->
 ### Example
 
 Set welcome message to **Welcome [who] to my group**:
@@ -55,7 +55,6 @@ Clear welcome message:
 ```
 /clear
 ```
--->
 ## Installation
 
 ### Runtime environment

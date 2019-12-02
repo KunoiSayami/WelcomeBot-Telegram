@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 from pyrogram import Client
+import time
 from libpy3.mysqldb import mysqldb
 
 class group_property:
@@ -29,8 +30,8 @@ class group_property:
 		self._no_new_member = no_new_member
 		self._no_blue = no_blue
 		self._ignore_err = ignore_err
-		self._admins_list = []
-		self.last_fetch = 0
+		self._admins_list = None
+		self._last_fetch = 0.0
 
 	@property
 	def no_welcome(self) -> bool:
@@ -50,7 +51,7 @@ class group_property:
 
 	@property
 	def ignore_err(self) -> bool:
-		return self.ignore_err
+		return self._ignore_err
 
 	@no_welcome.setter
 	def no_welcome(self, value: bool):
@@ -73,34 +74,57 @@ class group_property:
 		self._ignore_err = value
 
 	@property
-	def welcome_text(self):
+	def welcome_text(self) -> str:
 		return self._welcome_text
 
 	@welcome_text.setter
 	def welcome_text(self, value: str):
 		self._welcome_text = value
+	
+	@property
+	def last_fetch(self) -> float:
+		return self._last_fetch
 
+	@last_fetch.setter
+	def last_fetch(self, value: float) -> float:
+		self._last_fetch = value
+		return value
+
+	@property
+	def admins(self) -> list:
+		#if time.time() - self._last_fetch > 300:
+		#	return None
+		return self._admins_list
+	
+	@admins.setter
+	def admins(self, value: list) -> list:
+		del self._admins_list
+		self._admins_list = value
+		self.last_fetch = time.time
+		return value
 
 class group_cache:
 	def __init__(self, conn: mysqldb, client: Client):
 		self.conn = conn
 		self.client = client
 		self.groups = {}
+		self.read_database()
+
 	@staticmethod
 	def __transform_to_bool(s: str) -> bool:
 		return s == 'Y'
 
 	@staticmethod
 	def __transform_from_bool(s: bool) -> str:
-		return 'Y' if s else 'M'
+		return 'Y' if s else 'N'
 
 	def read_database(self):
 		sqlObj = self.conn.query("SELECT * FROM `welcomemsg` WHERE `available` = 'Y'")
 		for x in sqlObj:
-			self.groups.update({x['group_id'], self.get_group_property_from_dict(x)})
+			self.groups.update({x['group_id']: self.get_group_property_from_dict(x)})
 
-	def __getitem__(self, key: int):
-		return self.groups.get(key, None)
+	def __getitem__(self, key: int) -> group_property:
+		return self.groups.get(key)
 
 	@staticmethod
 	def get_group_property_from_dict(d: dict) -> group_property:

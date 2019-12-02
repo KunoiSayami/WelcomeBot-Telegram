@@ -19,9 +19,13 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 from configparser import ConfigParser
 import os
-from libpy3.mysqldb import mysqldb
+import re
 import logging
-from pyrogram import Client, Message, MessageHandler, Filters, User
+from threading import Timer
+import requests
+from pyrogram import Client, Message, MessageHandler, Filters, User, \
+	ContinuePropagation
+from tgmysqldb import mysqldb
 from cache import group_cache
 
 # To delete this assert, please check line 62: os.getloadavg()
@@ -30,6 +34,10 @@ assert platform.system() == 'Linux', 'This program must run in Linux-like system
 
 def getloadavg():
 	return '{} {} {}'.format(*os.getloadavg())
+
+
+setcommand_match = re.compile(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')
+gist_match = re.compile(r'^https:\/\/gist.githubusercontent.com\/.+\/[a-z0-9]{32}\/raw\/[a-z0-9]{40}\/.*$')
 
 markdown_symbols = ('_', '*', '~', '#', '^', '&', '`')
 
@@ -42,6 +50,12 @@ def parse_user_name(user: User) -> str:
 	if len(name) > 20:
 		name = name[:20] + '...'
 	return ''.join(filter(lambda x: x not in markdown_symbols, name))
+
+def send_and_delete(msg: Message, text: str, delay: int):
+	m = msg.reply(text, parse_mode='markdown')
+	t = Timer(delay, m.delete)
+	t.daemon = True
+	t.start()
 
 class bot_class:
 	bot_self = None
@@ -59,7 +73,11 @@ class bot_class:
 				self.config['database']['password'],
 				self.config['database']['db'],
 				autocommit=True)
+		self._bot_name = None
 		self.groups = group_cache(self.conn, self.bot)
+		self.error_message = ''
+		if self.config.has_option('bot', 'error_message'):
+			self.error_message = self.config['bot']['error_message']
 		self.init_receiver()
 
 	def run(self):
@@ -74,8 +92,15 @@ class bot_class:
 		self.conn.close()
 
 	@property
-	def bot_id(self):
+	def bot_id(self) -> int:
 		return self._bot_id
+
+	@property
+	def bot_name(self) -> str:
+		if self._bot_name is None:
+			self._bot_name = self.bot.get_me().username
+			logger.debug('Fetched bot username => %s', self._bot_name)
+		return self._bot_name
 
 	def new_chat_member(self, client: Client, msg: Message):
 		if self.bot_id in msg.new_chat_members:
@@ -85,17 +110,71 @@ class bot_class:
 		else:
 			welcome_text = self.groups[msg.chat.id].welcome_text
 			if welcome_text is not None:
-				client.send_message(msg.chat.id, welcome_text.replace('$name', parse_user_name(msg.from_user)), 'markdown', True, reply_to_message_id=msg.message_id)
+				last_msg = client.send_message(msg.chat.id, welcome_text.replace('$name', parse_user_name(msg.from_user)), 'markdown', True, reply_to_message_id=msg.message_id).message_id
+				pervious_msg = self.conn.query_last_message_id(msg.chat.id)
+				self.conn.insert_last_message_id(msg.chat.id, last_msg)
+				if self.groups[msg.chat.id].no_welcome:
+					if pervious_msg is not None:
+						client.delete_messages(msg.chat.id, pervious_msg)
 
 	def left_chat_member(self, _client: Client, msg: Message):
 		if self.bot_id in msg.left_chat_member:
 			self.groups.delete_group(msg.chat.id)
 
+	def privileges_control(self, client: Client, msg: Message):
+		bot_name = re.match(r'^\/(setwelcome|clear|status)(@[a-zA-Z_]*bot)?\s?', msg.text).group(2)
+		if bot_name is not None and bot_name != self.bot_name:
+			return
+		group_info = self.groups[msg.chat.id]
+		if group_info.admins is None:
+			admins = client.get_chat_members(msg.chat.id, filter='administrators')
+			group_info.admins = [x.user.id for x in admins]
+			self.groups.update_group(msg.chat.id, group_info)
+			logger.info('Updated administrator list in %d, new list is => %s', msg.chat.id, group_info.admins)
+		if msg.from_user.id in group_info.admins:
+			raise ContinuePropagation
+		else:
+			if not group_info.ignore_err and self.error_message != '':
+				msg.reply(self.error_message)
+
+	def set_welcome_message(self, _client: Client, msg: Message):
+		result = setcommand_match.match(msg.text)
+		welcomemsg = str(result.group(2))
+		result = gist_match.match(welcomemsg)
+		if result:
+			r = requests.get(welcomemsg)
+			r.raise_for_status()
+			welcomemsg = r.text
+		if len(welcomemsg) > 2048:
+			msg.reply("*Error*:Welcome message is too long.(len() must smaller than 4096)", parse_mode='Mmarkdown')
+			return
+		p = self.groups[msg.chat.id]
+		p.welcome_text = welcomemsg
+		self.groups.update_group(msg.chat.id, p)
+		msg.reply(f"*Set welcome message to:*\n{welcomemsg}", reply_markup='markdown', disable_web_page_preview=True)
+
+	def clear_welcome_message(self, _client: Client, msg: Message):
+		p = self.groups[msg.chat.id]
+		p.welcome_text = ''
+		self.groups.update_group(msg.chat.id, p)
+		msg.reply("*Clear welcome message completed!*", parse_mode='markdown')
+
+	def generate_status_message(self, _client: Client, msg: Message):
+		info = self.groups[msg.chat.id]
+		send_and_delete(msg, 'Current welcome messsage: {}'.format(info.welcome_text), 10)
+
 	def init_receiver(self):
 		self.bot.add_handler(MessageHandler(self.new_chat_member, Filters.new_chat_members))
 		self.bot.add_handler(MessageHandler(self.left_chat_member, Filters.left_chat_member))
+		self.bot.add_handler(MessageHandler(self.privileges_control, Filters.group & Filters.regex(r'^\/(setwelcome|clear|status)(@[a-zA-Z_]*bot)?\s?')))
+		self.bot.add_handler(MessageHandler(self.set_welcome_message, Filters.group & Filters.regex(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')))
+		self.bot.add_handler(MessageHandler(self.clear_welcome_message, Filters.group & Filters.regex(r'^\/clear(@[a-zA-Z_]*bot)?$')))
+		self.bot.add_handler(MessageHandler(self.generate_status_message, Filters.group & Filters.regex(r'\/status(@[a-zA-Z_]*bot)?$')))
+
 
 if __name__ == '__main__':
+	logging.getLogger("pyrogram").setLevel(logging.WARNING)
+	logging.basicConfig(level=logging.DEBUG, format = '%(asctime)s - %(levelname)s - %(funcName)s - %(lineno)d - %(message)s')
 	b = bot_class()
 	b.run()
 	b.stop()
