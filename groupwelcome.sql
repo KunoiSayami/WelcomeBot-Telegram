@@ -37,14 +37,17 @@ DROP TABLE IF EXISTS `welcomemsg`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `welcomemsg` (
   `group_id` bigint(20) NOT NULL,
-  `msg` text,
-  `poemable` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `ignore_err` tinyint(3) unsigned NOT NULL DEFAULT '1',
-  `noblue` tinyint(3) unsigned NOT NULL DEFAULT '0',
-  `other` bigint(20) unsigned NOT NULL DEFAULT '0',
-  `except` VARCHAR(500) NOT NULL DEFAULT 'W10=',
+  `msg` text CHARACTER SET utf8,
+  `poemable` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'N',
+  `ignore_err` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'Y',
+  `no_blue` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'N',
+  `no_service` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'N',
+  `no_welcome` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'N',
+  `no_new_member` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'N',
+  `available` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'Y',
+  `except` varchar(500) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'W10=',
   PRIMARY KEY (`group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

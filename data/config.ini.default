@@ -1,37 +1,12 @@
 [bot]
+api_id =
+api_hash =
 bot_token = 
 owner = 
 
 [database]
-charset = utf8
 host =
 port =
 user =
 passwd =
 db_name = groupwelcome
-
-[log]
-logfile = data/log.log
-log_info = false
-print_info = 
-log_warn = true
-print_warn = stderr
-log_err = true
-print_err = stderr
-log_debug = false
-print_debug = 
-debug_lvl = 1
-
-[encrypt]
-require_strong_key = false
-key = 
-associated_data =
-
-[git]
-switch = off
-source =
-branch = 
-filename = groupwelcome.sql
-ssh_key = 
-ssh_passwd = 
-backup_cycle = 3600

@@ -6,6 +6,8 @@ A bot can receive new chat member then show the welcome message
 
 **Remember: Bot only receive admins' and owner's command**
 
+**All command is current unavailable during refactoring code**
+<!--
 Command | Parameter(s) | Description
 ----|--|---
 `/setwelcome` | `(gist link \| markdown text)` | Set welcome message
@@ -20,7 +22,7 @@ Bot is now support placeholder, using them in welcome message,
 bot will auto-replace them to what you wish
 
 Placeholder | Replace to
----|----
+---|----i
 `$name` | user nickname
 
 _Known bug: If user name contains markdown characters may cause markdown error (replace process not work)_
@@ -53,16 +55,16 @@ Clear welcome message:
 ```
 /clear
 ```
-
+-->
 ## Installation
 
 ### Runtime environment
 
-In principle, need python 2.7.x interpreter and mysql database
+In principle, need python 3.5.x interpreter and mysql database
 
 The following libraries are required:
-* telepot
-* MySQLdb
+* pyrogram
+* pymysql
 
 ### First use
 
@@ -99,7 +101,7 @@ If bot is group admin, other member who not admin or owner using command will re
 
 [![](https://www.gnu.org/graphics/agplv3-155x51.png)](https://www.gnu.org/licenses/agpl-3.0.txt)
    
-Copyright (C) 2017-2018 KunoiSayami
+Copyright (C) 2017-2019 KunoiSayami
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
 
