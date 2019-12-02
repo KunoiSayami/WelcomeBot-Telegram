@@ -12,7 +12,8 @@ Command | Parameter(s) | Description
 ----|--|---
 `/setwelcome` | `(gist link \| markdown text)` | Set welcome message
 `/clear` | N/A | Clear setting welcome message
-<!--`/setflag ` | `(flags) (1\|0)` | Setting bot flags
+<!--
+`/setflag ` | `(flags) (1\|0)` | Setting bot flags
 `/ping` | N/A | Return current session information
 `/poem` | N/A | Read poetry (TBD)
 -->
@@ -40,7 +41,7 @@ no_service_msg | Bot will auto delete service message | False
 -->
 ### Example
 
-Set welcome message to **Welcome [who] to my group**:
+Set welcome message to **Welcome \[who\] to my group**:
 ```
 /setwelcome **Welcome $name to my group**
 ```
