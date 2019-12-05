@@ -38,7 +38,7 @@ DROP TABLE IF EXISTS `welcomemsg`;
 CREATE TABLE `welcomemsg` (
   `group_id` bigint(20) NOT NULL,
   `msg` text CHARACTER SET utf8,
-  `poemable` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'N',
+  `poemable` enum('Y','N') COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT 'N',
   `ignore_err` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'Y',
   `no_blue` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'N',
   `no_service` enum('Y','N') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'N',

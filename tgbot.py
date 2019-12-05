@@ -25,7 +25,7 @@ import datetime
 from threading import Timer
 import requests
 from pyrogram import Client, Message, MessageHandler, Filters, User, \
-	ContinuePropagation
+	ContinuePropagation, ChatPermissions
 from tgmysqldb import mysqldb
 from cache import group_cache
 
@@ -68,7 +68,7 @@ class bot_class:
 							self.config['bot']['api_id'],
 							self.config['bot']['api_hash'],
 							bot_token=self.config['bot']['bot_token'])
-		self._bot_id = int(self.config['bot']['bot_token'].split(':')[0])
+		self._bot_id = int(self.bot.session_name)
 		self.conn = mysqldb(self.config['database']['host'],
 				self.config['database']['user'],
 				self.config['database']['password'],
@@ -112,7 +112,7 @@ class bot_class:
 		else:
 			welcome_text = self.groups[msg.chat.id].welcome_text
 			if welcome_text is not None:
-				last_msg = msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)), 'markdown', True).message_id
+				last_msg = msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)), parse_mode='markdown', disable_web_page_preview=True).message_id
 				pervious_msg = self.conn.query_last_message_id(msg.chat.id)
 				self.conn.insert_last_message_id(msg.chat.id, last_msg)
 				if self.groups[msg.chat.id].no_welcome:
@@ -125,7 +125,7 @@ class bot_class:
 
 	def privileges_control(self, client: Client, msg: Message):
 		bot_name = re.match(r'^\/(setwelcome|clear|status)(@[a-zA-Z_]*bot)?\s?', msg.text).group(2)
-		if bot_name is not None and bot_name != self.bot_name:
+		if bot_name is not None and bot_name[1:] != self.bot_name:
 			return
 		group_info = self.groups[msg.chat.id]
 		if group_info.admins is None:
@@ -138,6 +138,10 @@ class bot_class:
 		else:
 			if not group_info.ignore_err and self.error_message != '':
 				msg.reply(self.error_message)
+				try:
+					client.restrict_chat_member(msg.chat.id, msg.from_user.id, ChatPermissions(can_send_messages=False), msg.date + 60)
+				except:
+					pass
 
 	def set_welcome_message(self, _client: Client, msg: Message):
 		result = setcommand_match.match(msg.text)

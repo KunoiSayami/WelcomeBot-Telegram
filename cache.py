@@ -21,6 +21,24 @@ from pyrogram import Client
 import time
 from libpy3.mysqldb import mysqldb
 
+class group_admins:
+	def __init__(self):
+		self._admins_list = None
+		self._last_fetch = 0.0
+
+	@property
+	def admins_list(self) -> list:
+		if time.time() - self._last_fetch > 120:
+			return None
+		return self._admins_list
+
+	@admins_list.setter
+	def admins_list(self, value: list) -> list:
+		del self._admins_list
+		self._admins_list = value
+		self._last_fetch = time.time()
+		return self._admins_list
+
 class group_property:
 	def __init__(self, text: str, no_welcome: bool, no_service_msg: bool,
 	             no_new_member: bool, no_blue: bool, ignore_err: bool):
@@ -30,8 +48,7 @@ class group_property:
 		self._no_new_member = no_new_member
 		self._no_blue = no_blue
 		self._ignore_err = ignore_err
-		self._admins_list = None
-		self._last_fetch = 0.0
+		self._admins_list = group_admins()
 
 	@property
 	def no_welcome(self) -> bool:
@@ -80,7 +97,7 @@ class group_property:
 	@welcome_text.setter
 	def welcome_text(self, value: str):
 		self._welcome_text = value
-	
+
 	@property
 	def last_fetch(self) -> float:
 		return self._last_fetch
@@ -94,13 +111,11 @@ class group_property:
 	def admins(self) -> list:
 		#if time.time() - self._last_fetch > 300:
 		#	return None
-		return self._admins_list
-	
+		return self._admins_list.admins_list
+
 	@admins.setter
 	def admins(self, value: list) -> list:
-		del self._admins_list
-		self._admins_list = value
-		self.last_fetch = time.time
+		self._admins_list.admins_list = value
 		return value
 
 class group_cache:
