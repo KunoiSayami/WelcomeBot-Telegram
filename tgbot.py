@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # tgbot.py
-# Copyright (C) 2017-2019 KunoiSayami
+# Copyright (C) 2017-2020 KunoiSayami
 #
 # This module is part of WelcomeBot-Telegram and is released under
 # the AGPL v3 License: https://www.gnu.org/licenses/agpl-3.0.txt
@@ -110,7 +110,10 @@ class bot_class:
 			msg.reply('Please use /setwelcome to set welcome message')
 			#msg.reply('This bot is refactoring code, feature may not available during this time')
 		else:
-			welcome_text = self.groups[msg.chat.id].welcome_text
+			group_setting = self.groups[msg.chat.id]
+			if group_setting is None:
+				group_setting = self.groups.insert_group(msg.chat.id)
+			welcome_text = group_setting.welcome_text
 			if welcome_text is not None:
 				last_msg = msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)), parse_mode='markdown', disable_web_page_preview=True).message_id
 				pervious_msg = self.conn.query_last_message_id(msg.chat.id)
