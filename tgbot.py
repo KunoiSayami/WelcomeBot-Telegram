@@ -29,16 +29,16 @@ from pyrogram import Client, Message, MessageHandler, Filters, User, \
 from tgmysqldb import mysqldb
 from cache import group_cache
 
-# To delete this assert, please check line 62: os.getloadavg()
+# To delete this assert, please check line 37: os.getloadavg()
 import platform
 assert platform.system() == 'Linux', 'This program must run in Linux-like systems'
 
 def getloadavg():
 	return '{} {} {}'.format(*os.getloadavg())
 
-
 setcommand_match = re.compile(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')
 gist_match = re.compile(r'^https:\/\/gist.githubusercontent.com\/.+\/[a-z0-9]{32}\/raw\/[a-z0-9]{40}\/.*$')
+setflag_match = re.compile(r'^\/setflag(@[a-zA-Z_]*bot)?\s([a-zA-Z_]+)\s([01])$')
 
 markdown_symbols = ('_', '*', '~', '#', '^', '&', '`')
 
@@ -176,14 +176,26 @@ class bot_class:
 		send_and_delete(msg, '**Current chat_id:** `{}`\n**Your id:** `{}`\n**Bot runtime**: `{}`\n**System load avg**: `{}`'.format(
 			msg.chat.id, msg.from_user.id, self.get_runtime(), getloadavg()), 10)
 
+	def set_group_prop(self, _client: Client, msg: Message):
+		r = setflag_match.match(msg.text)
+		if r is None:
+			return
+		value = r.group(3) == '1'
+		if r.group(2) == 'no_welcome':
+			groupInfo = self.groups[msg.chat.id]
+			groupInfo.no_welcome = value
+			send_and_delete(msg, f'Set no welcome flag to **{value}** successfully!', 10)
+
+
 	def init_receiver(self):
 		self.bot.add_handler(MessageHandler(self.new_chat_member, Filters.new_chat_members))
 		self.bot.add_handler(MessageHandler(self.left_chat_member, Filters.left_chat_member))
 		self.bot.add_handler(MessageHandler(self.privileges_control, Filters.group & Filters.regex(r'^\/(setwelcome|clear|status)(@[a-zA-Z_]*bot)?\s?')))
 		self.bot.add_handler(MessageHandler(self.set_welcome_message, Filters.group & Filters.regex(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')))
 		self.bot.add_handler(MessageHandler(self.clear_welcome_message, Filters.group & Filters.regex(r'^\/clear(@[a-zA-Z_]*bot)?$')))
-		self.bot.add_handler(MessageHandler(self.generate_status_message, Filters.group & Filters.regex(r'\/status(@[a-zA-Z_]*bot)?$')))
+		self.bot.add_handler(MessageHandler(self.generate_status_message, Filters.group & Filters.regex(r'^\/status(@[a-zA-Z_]*bot)?$')))
 		self.bot.add_handler(MessageHandler(self.response_ping_command, Filters.group & Filters.regex(r'^\/ping(@[a-zA-Z_]*bot)?$')))
+		self.bot.add_handler(MessageHandler(self.set_group_prop, Filters.group & Filters.regex(r'^\/setflag(@[a-zA-Z_]*bot)?')))
 
 	def get_runtime(self):
 		return str(datetime.datetime.now().replace(microsecond=0) - self.loaddatetime)

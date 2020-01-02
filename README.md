@@ -13,8 +13,8 @@ Command | Parameter(s) | Description
 `/setwelcome` | `(gist link \| markdown text)` | Set welcome message
 `/clear` | N/A | Clear setting welcome message
 `/ping` | N/A | Return current session information
-<!--
 `/setflag ` | `(flags) (1\|0)` | Setting bot flags
+<!--
 `/poem` | N/A | Read poetry (TBD)
 -->
 ### Placeholder
@@ -27,16 +27,17 @@ Placeholder | Replace to
 `$name` | user nickname
 
 _Known bug: If user name contains markdown characters may cause markdown error (replace process not work)_
-<!--
+
 ### Flags detail
 
 Flag | Description | Default
 ---|----|---
+no_welcome | Bot will auto delete previous welcome message | False
+<!--
 poemable | Switch enable poem function for this group | False
 ignore_err | Show ~~rude~~ message to no privilege member who using bot command | True
 noblue | While bot is admin, it will delete bot command after 5 seconds (need delete privilege) | False 
 no_new_member | Bot will auto delete \`Joined group' message (system genereted) (need delete privilege) | False
-no_welcome | Bot will auto delete previous welcome message | False
 no_service_msg | Bot will auto delete service message | False
 -->
 ### Example
