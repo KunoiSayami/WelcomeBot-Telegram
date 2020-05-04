@@ -17,29 +17,31 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
-from pyrogram import Client
 import time
-from libpy3.mysqldb import mysqldb
+from typing import Dict, List, NoReturn, Union
 
-class group_admins:
+from libpy3.aiomysqldb import mysqldb
+
+
+class GroupAdmins:
 	def __init__(self):
 		self._admins_list = None
 		self._last_fetch = 0.0
 
 	@property
-	def admins_list(self) -> list:
+	def admins_list(self) -> List[int]:
 		if time.time() - self._last_fetch > 120:
 			return None
 		return self._admins_list
 
 	@admins_list.setter
-	def admins_list(self, value: list) -> list:
+	def admins_list(self, value: List[int]) -> List[int]:
 		del self._admins_list
 		self._admins_list = value
 		self._last_fetch = time.time()
 		return self._admins_list
 
-class group_property:
+class GroupProperty:
 	def __init__(self, text: str, no_welcome: bool, no_service_msg: bool,
 	             no_new_member: bool, no_blue: bool, ignore_err: bool):
 		self._welcome_text = text
@@ -48,7 +50,7 @@ class group_property:
 		self._no_new_member = no_new_member
 		self._no_blue = no_blue
 		self._ignore_err = ignore_err
-		self._admins_list = group_admins()
+		self._admins_list = GroupAdmins()
 
 	@property
 	def no_welcome(self) -> bool:
@@ -71,23 +73,23 @@ class group_property:
 		return self._ignore_err
 
 	@no_welcome.setter
-	def no_welcome(self, value: bool):
+	def no_welcome(self, value: bool) -> NoReturn:
 		self._no_welcome = value
 
 	@no_service_msg.setter
-	def no_service_msg(self, value: bool):
+	def no_service_msg(self, value: bool) -> NoReturn:
 		self._no_service_msg = value
 
 	@no_blue.setter
-	def no_blue(self, value: bool):
+	def no_blue(self, value: bool) -> NoReturn:
 		self._no_blue = value
 
 	@no_new_member.setter
-	def no_new_member(self, value: bool):
+	def no_new_member(self, value: bool) -> NoReturn:
 		self._no_new_member = value
 
 	@ignore_err.setter
-	def ignore_err(self, value: bool):
+	def ignore_err(self, value: bool) -> NoReturn:
 		self._ignore_err = value
 
 	@property
@@ -95,7 +97,7 @@ class group_property:
 		return self._welcome_text
 
 	@welcome_text.setter
-	def welcome_text(self, value: str):
+	def welcome_text(self, value: str) -> NoReturn:
 		self._welcome_text = value
 
 	@property
@@ -118,12 +120,17 @@ class group_property:
 		self._admins_list.admins_list = value
 		return value
 
-class group_cache:
-	def __init__(self, conn: mysqldb, client: Client):
+# FIXME: using redis instead built-in dict
+class GroupCache:
+	def __init__(self, conn: mysqldb):
 		self.conn = conn
-		self.client = client
 		self.groups = {}
-		self.read_database()
+
+	@classmethod
+	async def create(cls, conn: mysqldb):
+		self = GroupCache(conn)
+		await self.read_database()
+		return self
 
 	@staticmethod
 	def __transform_to_bool(s: str) -> bool:
@@ -133,39 +140,39 @@ class group_cache:
 	def __transform_from_bool(s: bool) -> str:
 		return 'Y' if s else 'N'
 
-	def read_database(self):
-		sqlObj = self.conn.query("SELECT * FROM `welcomemsg` WHERE `available` = 'Y'")
+	async def read_database(self) -> NoReturn:
+		sqlObj = await self.conn.query("SELECT * FROM `welcomemsg` WHERE `available` = 'Y'")
 		for x in sqlObj:
 			self.groups.update({x['group_id']: self.get_group_property_from_dict(x)})
 
-	def __getitem__(self, key: int) -> group_property:
+	def __getitem__(self, key: int) -> GroupProperty:
 		return self.groups.get(key)
 
 	@staticmethod
-	def get_group_property_from_dict(d: dict) -> group_property:
-		return group_property(
+	def get_group_property_from_dict(d: Dict[str, Union[str, bool]]) -> GroupProperty:
+		return GroupProperty(
 				#b64decode(x['msg'].encode()).decode(),
 				d['msg'],
-				group_cache.__transform_to_bool(d['no_welcome']),
-				group_cache.__transform_to_bool(d['no_service']),
-				group_cache.__transform_to_bool(d['no_new_member']),
-				group_cache.__transform_to_bool(d['no_blue']),
-				group_cache.__transform_to_bool(d['ignore_err'])
+				GroupCache.__transform_to_bool(d['no_welcome']),
+				GroupCache.__transform_to_bool(d['no_service']),
+				GroupCache.__transform_to_bool(d['no_new_member']),
+				GroupCache.__transform_to_bool(d['no_blue']),
+				GroupCache.__transform_to_bool(d['ignore_err'])
 				)
 
-	def insert_group(self, chat_id: int) -> group_property:
+	async def insert_group(self, chat_id: int) -> GroupProperty:
 		#if chat_id in self.groups: return self.groups[chat_id]
 		#sqlObj = self.conn.query1("SELECT * FROM `welcomemsg` WHERE `group_id` = %s", chat_id)
 		#if sqlObj is not None:
 		#	self.update_group(chat_id, self.get_group_property_from_dict(sqlObj))
-		self.update_group(chat_id, group_property(None, False, False, False, False, True))
+		await self.update_group(chat_id, GroupProperty(None, False, False, False, False, True))
 		return self.groups[chat_id]
 
-	def update_group(self, chat_id: int, new_property: group_property, no_update: bool = False):
+	async def update_group(self, chat_id: int, new_property: GroupProperty, no_update: bool=False) -> NoReturn:
 		self.groups.update({chat_id: new_property})
 		if no_update: return
-		if self.conn.query1("SELECT 1 FROM `welcomemsg` WHERE `group_id` = %s", chat_id) is None:
-			self.conn.execute("INSERT INTO `welcomemsg` (`group_id`, `msg`, `ignore_err`, `no_blue`, `no_service`, `no_welcome`, `no_new_member`) VALUE (%s, %s, %s, %s, %s, %s, %s)",
+		if await self.conn.query1("SELECT 1 FROM `welcomemsg` WHERE `group_id` = %s", chat_id) is None:
+			await self.conn.execute("INSERT INTO `welcomemsg` (`group_id`, `msg`, `ignore_err`, `no_blue`, `no_service`, `no_welcome`, `no_new_member`) VALUE (%s, %s, %s, %s, %s, %s, %s)",
 				(
 					chat_id,
 					new_property.welcome_text,
@@ -176,7 +183,7 @@ class group_cache:
 					self.__transform_from_bool(new_property.no_new_member)
 				))
 		else:
-			self.conn.execute("UPDATE `welcomemsg` SET `msg` = %s, `ignore_err` = %s, `no_blue` = %s, `no_service` = %s, `no_welcome` = %s, `no_new_member` = %s WHERE `group_id` = %s",
+			await self.conn.execute("UPDATE `welcomemsg` SET `msg` = %s, `ignore_err` = %s, `no_blue` = %s, `no_service` = %s, `no_welcome` = %s, `no_new_member` = %s WHERE `group_id` = %s",
 				(
 					new_property.welcome_text,
 					self.__transform_from_bool(new_property.ignore_err),
@@ -187,6 +194,6 @@ class group_cache:
 					chat_id
 				))
 
-	def delete_group(self, chat_id: int):
+	async def delete_group(self, chat_id: int) -> NoReturn:
 		#if self.groups.pop(chat_id, None) is not None:
-		self.conn.execute("DELETE FROM `welcomemsg` WHERE `group_id` = %s", chat_id)
+		await self.conn.execute("DELETE FROM `welcomemsg` WHERE `group_id` = %s", chat_id)
