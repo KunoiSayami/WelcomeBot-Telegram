@@ -17,24 +17,27 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
-from configparser import ConfigParser
-import os
-import re
-import logging
 import datetime
-from threading import Timer
-import requests
-from pyrogram import Client, Message, MessageHandler, Filters, User, \
-	ContinuePropagation, ChatPermissions
-from tgmysqldb import mysqldb
-from cache import group_cache
-
+import logging
+import os
 # To delete this assert, please check line 37: os.getloadavg()
 import platform
+import re
+from configparser import ConfigParser
+from threading import Timer
+
+import pyrogram.errors
+import requests
+from pyrogram import (ChatPermissions, Client, ContinuePropagation, Filters,
+                      Message, MessageHandler, User)
+
+from cache import group_cache
+from tgmysqldb import mysqldb
+
 assert platform.system() == 'Linux', 'This program must run in Linux-like systems'
 
 def getloadavg():
-	return '{} {} {}'.format(*os.getloadavg())
+	return ' '.join(map(str, os.getloadavg()))
 
 setcommand_match = re.compile(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')
 gist_match = re.compile(r'^https:\/\/gist.githubusercontent.com\/.+\/[a-z0-9]{32}\/raw\/[a-z0-9]{40}\/.*$')
@@ -44,6 +47,7 @@ markdown_symbols = ('_', '*', '~', '#', '^', '&', '`')
 
 logger = logging.getLogger(__file__)
 
+
 def parse_user_name(user: User) -> str:
 	name = user.first_name
 	if user.last_name is not None:
@@ -52,34 +56,34 @@ def parse_user_name(user: User) -> str:
 		name = name[:20] + '...'
 	return ''.join(filter(lambda x: x not in markdown_symbols, name))
 
+
 def send_and_delete(msg: Message, text: str, delay: int):
-	m = msg.reply(text, parse_mode='markdown')
+	m = msg.reply(text, parse_mode='markdown', disable_web_page_preview=True)
 	t = Timer(delay, m.delete)
 	t.daemon = True
 	t.start()
+
 
 class bot_class:
 	bot_self = None
 	def __init__(self):
 		logger.debug('Enter bot_class.__init__()')
-		self.config = ConfigParser()
-		self.config.read('data/config.ini')
-		self.bot = Client(self.config['bot']['bot_token'].split(':')[0],
-							self.config['bot']['api_id'],
-							self.config['bot']['api_hash'],
-							bot_token=self.config['bot']['bot_token'])
+		config = ConfigParser()
+		config.read('data/config.ini')
+		self.bot = Client(config.get('bot', 'bot_token').split(':')[0],
+							config.get('bot', 'api_id'),
+							config.get('bot', 'api_hash'),
+							bot_token=config.get('bot', 'bot_token'))
 		self._bot_id = int(self.bot.session_name)
-		self.conn = mysqldb(self.config['database']['host'],
-				self.config['database']['user'],
-				self.config['database']['password'],
-				self.config['database']['db'],
+		self.conn = mysqldb(config.get('database', 'host'),
+				config.get('database', 'user'),
+				config.get('database', 'password'),
+				config.get('database', 'db'),
 				autocommit=True)
 		self._bot_name = None
 		self.loaddatetime = datetime.datetime.now().replace(microsecond=0)
 		self.groups = group_cache(self.conn, self.bot)
-		self.error_message = ''
-		if self.config.has_option('bot', 'error_message'):
-			self.error_message = self.config['bot']['error_message']
+		self.error_message = config.get('bot', 'error_message', fallback='')
 		self.init_receiver()
 
 	def run(self):
@@ -87,7 +91,7 @@ class bot_class:
 		try:
 			self.bot.idle()
 		except InterruptedError:
-			pass
+			logger.debug('Catch!')
 
 	def stop(self):
 		self.bot.stop()
@@ -115,7 +119,13 @@ class bot_class:
 				group_setting = self.groups.insert_group(msg.chat.id)
 			welcome_text = group_setting.welcome_text
 			if welcome_text is not None:
-				last_msg = msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)), parse_mode='markdown', disable_web_page_preview=True).message_id
+				try:
+					last_msg = msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)), parse_mode='markdown', disable_web_page_preview=True).message_id
+				except pyrogram.errors.ChatWriteForbidden:
+					logger.error('Got ChatWriterForbidden in %d', msg.chat.id)
+					msg.chat.leave()
+					self.groups.delete_group(msg.chat.id)
+					return
 				pervious_msg = self.conn.query_last_message_id(msg.chat.id)
 				self.conn.insert_last_message_id(msg.chat.id, last_msg)
 				if self.groups[msg.chat.id].no_welcome:
@@ -155,7 +165,7 @@ class bot_class:
 			r.raise_for_status()
 			welcomemsg = r.text
 		if len(welcomemsg) > 2048:
-			msg.reply("**Error**:Welcome message is too long.(len() must smaller than 4096)", parse_mode='markdown')
+			msg.reply("**Error**:Welcome message is too long.(len() must smaller than 2048)", parse_mode='markdown')
 			return
 		p = self.groups[msg.chat.id]
 		p.welcome_text = welcomemsg
@@ -179,23 +189,32 @@ class bot_class:
 	def set_group_prop(self, _client: Client, msg: Message):
 		r = setflag_match.match(msg.text)
 		if r is None:
-			return
+			return send_and_delete(msg, 'Please read manual to use this command properly', 10)
 		value = r.group(3) == '1'
+		group_info = self.groups[msg.chat.id]
 		if r.group(2) == 'no_welcome':
-			groupInfo = self.groups[msg.chat.id]
-			groupInfo.no_welcome = value
-			send_and_delete(msg, f'Set no welcome flag to **{value}** successfully!', 10)
+			group_info.no_welcome = value
+		elif r.group(2) == 'no_blue':
+			group_info.no_blue = value
+		elif r.group(2) == 'ignore_err':
+			group_info.ignore_err = value
+		elif r.group(2) == 'no_service_msg':
+			group_info.no_service_msg = value
+		elif r.group(2) == 'no_new_member':
+			group_info.no_new_member = value
+		self.groups.update_group(msg.chat.id, group_info)
+		send_and_delete(msg, f'Set {r.group(2)} flag to **{value}** successfully!', 10)
 
 
 	def init_receiver(self):
 		self.bot.add_handler(MessageHandler(self.new_chat_member, Filters.new_chat_members))
 		self.bot.add_handler(MessageHandler(self.left_chat_member, Filters.left_chat_member))
-		self.bot.add_handler(MessageHandler(self.privileges_control, Filters.group & Filters.regex(r'^\/(setwelcome|clear|status)(@[a-zA-Z_]*bot)?\s?')))
+		self.bot.add_handler(MessageHandler(self.privileges_control, Filters.group & Filters.regex(r'^\/(setwelcome|clear|status|setflag)(@[a-zA-Z_]*bot)?\s?')))
 		self.bot.add_handler(MessageHandler(self.set_welcome_message, Filters.group & Filters.regex(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')))
 		self.bot.add_handler(MessageHandler(self.clear_welcome_message, Filters.group & Filters.regex(r'^\/clear(@[a-zA-Z_]*bot)?$')))
 		self.bot.add_handler(MessageHandler(self.generate_status_message, Filters.group & Filters.regex(r'^\/status(@[a-zA-Z_]*bot)?$')))
 		self.bot.add_handler(MessageHandler(self.response_ping_command, Filters.group & Filters.regex(r'^\/ping(@[a-zA-Z_]*bot)?$')))
-		self.bot.add_handler(MessageHandler(self.set_group_prop, Filters.group & Filters.regex(r'^\/setflag(@[a-zA-Z_]*bot)?')))
+		self.bot.add_handler(MessageHandler(self.set_group_prop, Filters.group & Filters.regex(r'^\/setflag(@[a-zA-Z_]*bot)?\s?')))
 
 	def get_runtime(self):
 		return str(datetime.datetime.now().replace(microsecond=0) - self.loaddatetime)

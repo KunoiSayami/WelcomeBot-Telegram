@@ -94,3 +94,4 @@ test.py
 .vscode/
 data/*
 !data/*.default
+*.session
