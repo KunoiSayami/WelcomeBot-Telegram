@@ -30,7 +30,7 @@ from pyrogram import (ChatPermissions, Client, ContinuePropagation, Filters,
                       Message, MessageHandler, User)
 
 from cache import GroupCache, GroupProperty
-from tgmysqldb import mysqldb
+from tgmysqldb import MySqlDB
 
 def getloadavg() -> str:
 	return ' '.join(map(str, os.getloadavg()))
@@ -64,7 +64,7 @@ class WelcomeBot:
 							config.get('bot', 'api_hash'),
 							bot_token=config.get('bot', 'bot_token'))
 		self._bot_id: int = int(self.bot.session_name)
-		self.conn: mysqldb = None
+		self.conn: MySqlDB = None
 		self._bot_name: str = ''
 		self.loaddatetime: datetime.datetime = datetime.datetime.now().replace(microsecond=0)
 		self.groups: GroupCache = None
@@ -86,7 +86,7 @@ class WelcomeBot:
 		config = ConfigParser()
 		config.read('data/config.ini')
 		self = WelcomeBot()
-		self.conn = await mysqldb.create(config.get('database', 'host'),
+		self.conn = await MySqlDB.create(config.get('database', 'host'),
 				config.get('database', 'user'),
 				config.get('database', 'password'),
 				config.get('database', 'db'))
@@ -126,7 +126,7 @@ class WelcomeBot:
 			welcome_text = group_setting.welcome_text
 			if welcome_text is not None:
 				try:
-					last_msg = await msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)), parse_mode='markdown', disable_web_page_preview=True).message_id
+					last_msg = (await msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)), parse_mode='markdown', disable_web_page_preview=True)).message_id
 				except pyrogram.errors.ChatWriteForbidden:
 					logger.error('Got ChatWriterForbidden in %d', msg.chat.id)
 					await msg.chat.leave()
