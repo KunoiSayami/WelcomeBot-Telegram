@@ -20,7 +20,7 @@
 import time
 from typing import Dict, List, Optional
 
-from libpy3.aiomysqldb import mysqldb
+from libpy3.aiomysqldb import MySqlDB
 
 
 class GroupAdmins:
@@ -110,7 +110,7 @@ class GroupProperty:
 		return value
 
 	@property
-	def admins(self) -> List[int]:
+	def admins(self) -> Optional[List[int]]:
 		return self._admins_list.admins_list
 
 	@admins.setter
@@ -120,12 +120,12 @@ class GroupProperty:
 
 # FIXME: using redis instead built-in dict
 class GroupCache:
-	def __init__(self, conn: mysqldb):
+	def __init__(self, conn: MySqlDB):
 		self.conn = conn
 		self.groups = {}
 
 	@classmethod
-	async def create(cls, conn: mysqldb):
+	async def create(cls, conn: MySqlDB):
 		self = GroupCache(conn)
 		await self.read_database()
 		return self

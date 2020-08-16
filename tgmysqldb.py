@@ -17,10 +17,10 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
-from libpy3.aiomysqldb import mysqldb as MDB
+from libpy3.aiomysqldb import MySqlDB as MDB
 
 
-class mysqldb(MDB):
+class MySqlDB(MDB):
 	async def insert_last_message_id(self, chat_id: int, message_id: int) -> None:
 		await self.execute("UPDATE `welcomemsg` SET `pervious_msg` = %s WHERE `group_id` = %s", (message_id, chat_id)) # type: ignore
 
