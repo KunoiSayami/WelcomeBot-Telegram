@@ -17,14 +17,12 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
-from typing import NoReturn
-
 from libpy3.aiomysqldb import mysqldb as MDB
 
 
 class mysqldb(MDB):
-	async def insert_last_message_id(self, chat_id: int, message_id: int) -> NoReturn:
-		await self.execute("UPDATE `welcomemsg` SET `pervious_msg` = %s WHERE `group_id` = %s", (message_id, chat_id))
+	async def insert_last_message_id(self, chat_id: int, message_id: int) -> None:
+		await self.execute("UPDATE `welcomemsg` SET `pervious_msg` = %s WHERE `group_id` = %s", (message_id, chat_id)) # type: ignore
 
 	async def query_last_message_id(self, chat_id: int) -> int:
-		return await self.query1("SELECT `pervious_msg` FROM `welcomemsg` WHERE `group_id` = %s", chat_id)['pervious_msg']
+		return await self.query1("SELECT `pervious_msg` FROM `welcomemsg` WHERE `group_id` = %s", chat_id)['pervious_msg'] # type: ignore
