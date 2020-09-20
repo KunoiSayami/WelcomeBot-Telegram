@@ -72,11 +72,11 @@ The following libraries are required:
 
 * Copy `data/config.ini.default` to `data/config.ini`
 * Change the database configure and telegram bot token in `config.ini`
-* Import `groupwelcome.sql` to database which you will connect
+* Import `group_welcome.sql` to database which you will connect
 
 ### Run
 
-After configure, you can using `./tgbot.py` to run this bot
+After configure, you can using `./welcome_bot.py` to run this bot
 
 ## Hint
 
