@@ -4,12 +4,10 @@ A bot can receive new chat member then show the welcome message
 
 ## Acceptable command
 
-**Remember: Bot only receive admins' and owner's command**
-
-**Other command is currently unavailable during refactoring code**
+**Remember: Bot only receive administrators' and owner's command**
 
 Command | Parameter(s) | Description
-----|--|---
+----|----|---
 `/setwelcome` | `(gist link \| markdown text)` | Set welcome message
 `/clear` | N/A | Clear setting welcome message
 `/ping` | N/A | Return current session information
@@ -33,13 +31,14 @@ _Known bug: If user name contains markdown characters may cause markdown error (
 Flag | Description | Default
 ---|----|---
 no_welcome | Bot will auto delete previous welcome message | False
+ignore_err | Show ~~rude~~ message to no privilege member who using bot command | True
+no_blue | While bot is admin, it will delete bot command after 5 seconds (need delete privilege) | False 
+no_new_member | Bot will auto delete \`Joined group' message (system generated) (need delete privilege) | False
+no_service_msg | Bot will auto delete service message | False
 <!--
 poemable | Switch enable poem function for this group | False
-ignore_err | Show ~~rude~~ message to no privilege member who using bot command | True
-noblue | While bot is admin, it will delete bot command after 5 seconds (need delete privilege) | False 
-no_new_member | Bot will auto delete \`Joined group' message (system genereted) (need delete privilege) | False
-no_service_msg | Bot will auto delete service message | False
 -->
+
 ### Example
 
 Set welcome message to **Welcome \[who\] to my group**:
@@ -61,11 +60,13 @@ Clear welcome message:
 
 ### Runtime environment
 
-In principle, need python 3.5.x interpreter and mysql database
+In principle, need python 3.7.x interpreter and PostgreSQL database
 
 The following libraries are required:
+
 * pyrogram
-* pymysql
+* asyncpg
+* aiohttp
 
 ### First use
 
@@ -75,7 +76,7 @@ The following libraries are required:
 
 ### Run
 
-After configure, you can using `./start.sh` to run this bot
+After configure, you can using `./tgbot.py` to run this bot
 
 ## Hint
 

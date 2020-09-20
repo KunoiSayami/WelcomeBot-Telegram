@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # tgbot.py
 # Copyright (C) 2017-2020 KunoiSayami
@@ -26,18 +27,20 @@ from configparser import ConfigParser
 
 import aiohttp
 import pyrogram.errors
-from pyrogram import (ChatPermissions, Client, ContinuePropagation, Filters,
-                      Message, MessageHandler, User)
+from pyrogram import Client, ContinuePropagation, filters
+from pyrogram.handlers import MessageHandler
+from pyrogram.types import ChatPermissions, Message, User
 
-from cache import GroupCache, GroupProperty
-from tgmysqldb import MySqlDB
+from cache import GroupCache, GroupProperty, PostgreSQL
 
-def getloadavg() -> str:
+
+def get_load_avg() -> str:
 	return ' '.join(map(str, os.getloadavg()))
 
-setcommand_match = re.compile(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')
-gist_match = re.compile(r'^https:\/\/gist.githubusercontent.com\/.+\/[a-z0-9]{32}\/raw\/[a-z0-9]{40}\/.*$')
-setflag_match = re.compile(r'^\/setflag(@[a-zA-Z_]*bot)?\s([a-zA-Z_]+)\s([01])$')
+
+setcommand_match = re.compile(r'^/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')
+gist_match = re.compile(r'^https://gist.githubusercontent.com/.+/[a-z0-9]{32}/raw/[a-z0-9]{40}/.*$')
+setflag_match = re.compile(r'^/setflag(@[a-zA-Z_]*bot)?\s([a-zA-Z_]+)\s([01])$')
 
 markdown_symbols = ('_', '*', '~', '#', '^', '&', '`')
 
@@ -51,7 +54,6 @@ def parse_user_name(user: User) -> str:
 	if len(name) > 20:
 		name = name[:20] + '...'
 	return ''.join(x for x in name if x not in markdown_symbols)
-	#return ''.join(filter(lambda x: x not in markdown_symbols, name))
 
 
 class WelcomeBot:
@@ -60,20 +62,21 @@ class WelcomeBot:
 		config = ConfigParser()
 		config.read('data/config.ini')
 		self.bot: Client = Client(config.get('bot', 'bot_token').split(':')[0],
-							config.get('bot', 'api_id'),
-							config.get('bot', 'api_hash'),
-							bot_token=config.get('bot', 'bot_token'))
+								  config.get('bot', 'api_id'),
+								  config.get('bot', 'api_hash'),
+								  bot_token=config.get('bot', 'bot_token'))
 		self._bot_id: int = int(self.bot.session_name)
-		self.conn: MySqlDB = None
+		self.conn: PostgreSQL = None
 		self._bot_name: str = ''
-		self.loaddatetime: datetime.datetime = datetime.datetime.now().replace(microsecond=0)
+		self.load_datetime: datetime.datetime = datetime.datetime.now().replace(microsecond=0)
 		self.groups: GroupCache = None
 		self.error_message: str = config.get('bot', 'error_message', fallback='')
 		self.init_receiver()
 
 	@staticmethod
 	def send_and_delete(msg: Message, text: str, delay: int) -> None:
-		asyncio.run_coroutine_threadsafe(WelcomeBot.bootstrap_send_message_timer(msg, text, delay), asyncio.get_event_loop())
+		asyncio.run_coroutine_threadsafe(WelcomeBot.bootstrap_send_message_timer(msg, text, delay),
+										 asyncio.get_event_loop())
 
 	@staticmethod
 	async def bootstrap_send_message_timer(msg: Message, text: str, delay: int) -> None:
@@ -86,10 +89,11 @@ class WelcomeBot:
 		config = ConfigParser()
 		config.read('data/config.ini')
 		self = WelcomeBot()
-		self.conn = await MySqlDB.create(config.get('database', 'host'),
-				config.get('database', 'user'),
-				config.get('database', 'password'),
-				config.get('database', 'db'))
+		self.conn = await PostgreSQL.create(config.get('pgsql', 'host'),
+											config.getint('pgsql', 'port'),
+											config.get('pgsql', 'user'),
+											config.get('pgsql', 'password'),
+											config.get('pgsql', 'database'))
 		self.groups = await GroupCache.create(self.conn)
 		return self
 
@@ -98,11 +102,7 @@ class WelcomeBot:
 		if self._bot_name is None:
 			self._bot_name = (await self.bot.get_me()).username
 			logger.debug('Fetched bot username => %s', self._bot_name)
-		try:
-			await self.bot.idle()
-		except InterruptedError:
-			logger.debug('Catch!')
-		
+		await pyrogram.idle()
 
 	async def stop(self) -> None:
 		await self.bot.stop()
@@ -120,13 +120,14 @@ class WelcomeBot:
 		if self.bot_id in msg.new_chat_members:
 			await self.groups.insert_group(msg.chat.id)
 			await msg.reply('Please use /setwelcome to set welcome message')
-			#msg.reply('This bot is refactoring code, feature may not available during this time')
+		# msg.reply('This bot is refactoring code, feature may not available during this time')
 		else:
 			group_setting = await self.get_groups_cache_s(msg.chat.id)
 			welcome_text = group_setting.welcome_text
 			if welcome_text is not None:
 				try:
-					last_msg = (await msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)), parse_mode='markdown', disable_web_page_preview=True)).message_id
+					last_msg = (await msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)),
+												parse_mode='markdown', disable_web_page_preview=True)).message_id
 				except pyrogram.errors.ChatWriteForbidden:
 					logger.error('Got ChatWriterForbidden in %d', msg.chat.id)
 					await msg.chat.leave()
@@ -143,7 +144,7 @@ class WelcomeBot:
 			await self.groups.delete_group(msg.chat.id)
 
 	async def privileges_control(self, client: Client, msg: Message) -> None:
-		bot_name = re.match(r'^\/(setwelcome|clear|status)(@[a-zA-Z_]*bot)?\s?', msg.text).group(2)
+		bot_name = re.match(r'^/(setwelcome|clear|status)(@[a-zA-Z_]*bot)?\s?', msg.text).group(2)
 		if bot_name is not None and bot_name[1:] != self.bot_name:
 			return
 		group_info = await self.get_groups_cache_s(msg.chat.id)
@@ -158,7 +159,8 @@ class WelcomeBot:
 			if not group_info.ignore_err and self.error_message != '':
 				await msg.reply(self.error_message)
 				try:
-					await client.restrict_chat_member(msg.chat.id, msg.from_user.id, ChatPermissions(can_send_messages=False), msg.date + 60)
+					await client.restrict_chat_member(msg.chat.id, msg.from_user.id,
+													  ChatPermissions(can_send_messages=False), msg.date + 60)
 				except:
 					pass
 
@@ -171,12 +173,14 @@ class WelcomeBot:
 				async with session.get(welcomemsg) as response:
 					welcomemsg = await response.text()
 		if len(welcomemsg) > 2048:
-			await msg.reply("**Error**:Welcome message is too long.(len() must smaller than 2048)", parse_mode='markdown')
+			await msg.reply("**Error**:Welcome message is too long.(len() must smaller than 2048)",
+							parse_mode='markdown')
 			return
 		p = await self.get_groups_cache_s(msg.chat.id)
 		p.welcome_text = welcomemsg
 		await self.groups.update_group(msg.chat.id, p)
-		await msg.reply(f"**Set welcome message to:**\n{welcomemsg}", parse_mode='markdown', disable_web_page_preview=True)
+		await msg.reply(f"**Set welcome message to:**\n{welcomemsg}", parse_mode='markdown',
+						disable_web_page_preview=True)
 
 	async def get_groups_cache_s(self, chat_id: int) -> GroupProperty:
 		p = self.groups[chat_id]
@@ -195,8 +199,10 @@ class WelcomeBot:
 		self.send_and_delete(msg, f'Current welcome messsage: {info.welcome_text}', 10)
 
 	async def response_ping_command(self, _client: Client, msg: Message) -> None:
-		self.send_and_delete(msg, '**Current chat_id:** `{}`\n**Your id:** `{}`\n**Bot runtime**: `{}`\n**System load avg**: `{}`'.format(
-			msg.chat.id, msg.from_user.id, self.get_runtime(), getloadavg()), 10)
+		self.send_and_delete(msg,
+							 '**Current chat_id:** `{}`\n**Your id:** `{}`\n'
+							 '**Bot runtime**: `{}`\n**System load avg**: `{}`'.format(
+								 msg.chat.id, msg.from_user.id, self.get_runtime(), get_load_avg()), 10)
 
 	async def set_group_prop(self, _client: Client, msg: Message) -> None:
 		r = setflag_match.match(msg.text)
@@ -219,17 +225,23 @@ class WelcomeBot:
 
 	def init_receiver(self) -> None:
 		logger.info('Init receiver')
-		self.bot.add_handler(MessageHandler(self.new_chat_member, Filters.new_chat_members))
-		self.bot.add_handler(MessageHandler(self.left_chat_member, Filters.left_chat_member))
-		self.bot.add_handler(MessageHandler(self.privileges_control, Filters.group & Filters.regex(r'^\/(setwelcome|clear|status|setflag)(@[a-zA-Z_]*bot)?\s?')))
-		self.bot.add_handler(MessageHandler(self.set_welcome_message, Filters.group & Filters.regex(r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')))
-		self.bot.add_handler(MessageHandler(self.clear_welcome_message, Filters.group & Filters.regex(r'^\/clear(@[a-zA-Z_]*bot)?$')))
-		self.bot.add_handler(MessageHandler(self.generate_status_message, Filters.group & Filters.regex(r'^\/status(@[a-zA-Z_]*bot)?$')))
-		self.bot.add_handler(MessageHandler(self.response_ping_command, Filters.group & Filters.regex(r'^\/ping(@[a-zA-Z_]*bot)?$')))
-		self.bot.add_handler(MessageHandler(self.set_group_prop, Filters.group & Filters.regex(r'^\/setflag(@[a-zA-Z_]*bot)?\s?')))
+		self.bot.add_handler(MessageHandler(self.new_chat_member, filters.new_chat_members))
+		self.bot.add_handler(MessageHandler(self.left_chat_member, filters.left_chat_member))
+		self.bot.add_handler(MessageHandler(self.privileges_control, filters.group & filters.regex(
+			r'^\/(setwelcome|clear|status|setflag)(@[a-zA-Z_]*bot)?\s?')))
+		self.bot.add_handler(MessageHandler(self.set_welcome_message, filters.group & filters.regex(
+			r'^\/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')))
+		self.bot.add_handler(
+			MessageHandler(self.clear_welcome_message, filters.group & filters.regex(r'^\/clear(@[a-zA-Z_]*bot)?$')))
+		self.bot.add_handler(
+			MessageHandler(self.generate_status_message, filters.group & filters.regex(r'^\/status(@[a-zA-Z_]*bot)?$')))
+		self.bot.add_handler(
+			MessageHandler(self.response_ping_command, filters.group & filters.regex(r'^\/ping(@[a-zA-Z_]*bot)?$')))
+		self.bot.add_handler(
+			MessageHandler(self.set_group_prop, filters.group & filters.regex(r'^\/setflag(@[a-zA-Z_]*bot)?\s?')))
 
 	def get_runtime(self) -> str:
-		return str(datetime.datetime.now().replace(microsecond=0) - self.loaddatetime)
+		return str(datetime.datetime.now().replace(microsecond=0) - self.load_datetime)
 
 
 async def main() -> None:
@@ -239,10 +251,12 @@ async def main() -> None:
 
 
 if __name__ == '__main__':
-	logging.getLogger("pyrogram").setLevel(logging.WARNING)
 	try:
 		import coloredlogs
+
 		coloredlogs.install(logging.DEBUG, fmt='%(asctime)s - %(levelname)s - %(funcName)s - %(lineno)d - %(message)s')
 	except ModuleNotFoundError:
-		logging.basicConfig(level=logging.DEBUG, format = '%(asctime)s - %(levelname)s - %(funcName)s - %(lineno)d - %(message)s')
+		logging.basicConfig(level=logging.DEBUG,
+							format='%(asctime)s - %(levelname)s - %(funcName)s - %(lineno)d - %(message)s')
+	logging.getLogger("pyrogram").setLevel(logging.WARNING)
 	asyncio.get_event_loop().run_until_complete(main())
