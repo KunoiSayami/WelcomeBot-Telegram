@@ -140,7 +140,7 @@ class WelcomeBot:
                         await client.delete_messages(msg.chat.id, pervious_msg)
 
     async def left_chat_member(self, _client: Client, msg: Message) -> None:
-        if self.bot_id in msg.left_chat_member:
+        if self.bot_id == msg.left_chat_member.id:
             await self.groups.delete_group(msg.chat.id)
 
     async def privileges_control(self, client: Client, msg: Message) -> None:
