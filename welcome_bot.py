@@ -126,25 +126,25 @@ class WelcomeBot:
             welcome_text = group_setting.welcome_text
             if welcome_text is not None:
                 try:
-                    last_msg = (await msg.reply(welcome_text.replace('$name', parse_user_name(msg.from_user)),
+                    last_msg = (await msg.reply(welcome_text.replace('$name', parse_user_name(msg.new_chat_members[0])),
                                                 parse_mode='markdown', disable_web_page_preview=True)).message_id
                 except pyrogram.errors.ChatWriteForbidden:
                     logger.error('Got ChatWriterForbidden in %d', msg.chat.id)
                     await msg.chat.leave()
                     await self.groups.delete_group(msg.chat.id)
                     return
-                pervious_msg = await self.conn.query_last_message_id(msg.chat.id)
+                previous_msg = await self.conn.query_last_message_id(msg.chat.id)
                 await self.conn.insert_last_message_id(msg.chat.id, last_msg)
                 if self.groups[msg.chat.id].no_welcome:
-                    if pervious_msg is not None:
-                        await client.delete_messages(msg.chat.id, pervious_msg)
+                    if previous_msg is not None:
+                        await client.delete_messages(msg.chat.id, previous_msg)
 
     async def left_chat_member(self, _client: Client, msg: Message) -> None:
         if self.bot_id == msg.left_chat_member.id:
             await self.groups.delete_group(msg.chat.id)
 
     async def privileges_control(self, client: Client, msg: Message) -> None:
-        bot_name = re.match(r'^/(setwelcome|clear|status)(@[a-zA-Z_]*bot)?\s?', msg.text).group(2)
+        bot_name = re.match(r'^/(setwelcome|clear|status|setflag)(@[a-zA-Z_]*bot)?\s?', msg.text).group(2)
         if bot_name is not None and bot_name[1:] != self.bot_name:
             return
         group_info = await self.get_groups_cache_s(msg.chat.id)
@@ -216,7 +216,7 @@ class WelcomeBot:
             group_info.no_blue = value
         elif r.group(2) == 'ignore_err':
             group_info.ignore_err = value
-        elif r.group(2) == 'no_service_msg':
+        elif r.group(2) == 'no_service':
             group_info.no_service_msg = value
         elif r.group(2) == 'no_new_member':
             group_info.no_new_member = value

@@ -18,6 +18,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import time
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 
 from libpy3.aiopgsqldb import PgSQLdb
@@ -35,80 +36,30 @@ class GroupAdmins:
         return self._admins_list
 
     @admins_list.setter
-    def admins_list(self, value: List[int]) -> List[int]:
+    def admins_list(self, value: List[int]) -> None:
         del self._admins_list
         self._admins_list = value
         self._last_fetch = time.time()
-        return self._admins_list
 
 
+@dataclass(init=False)
 class GroupProperty:
+    welcome_text: Optional[str]
+    no_welcome: bool
+    no_service_msg: bool
+    no_new_member: bool
+    no_blue: bool
+    ignore_err: bool
+
     def __init__(self, text: Optional[str], no_welcome: bool, no_service_msg: bool,
                  no_new_member: bool, no_blue: bool, ignore_err: bool):
-        self._welcome_text: Optional[str] = text
-        self._no_welcome: bool = no_welcome
-        self._no_service_msg: bool = no_service_msg
-        self._no_new_member: bool = no_new_member
-        self._no_blue: bool = no_blue
-        self._ignore_err: bool = ignore_err
+        self.welcome_text: Optional[str] = text
+        self.no_welcome: bool = no_welcome
+        self.no_service_msg: bool = no_service_msg
+        self.no_new_member: bool = no_new_member
+        self.no_blue: bool = no_blue
+        self.ignore_err: bool = ignore_err
         self._admins_list: GroupAdmins = GroupAdmins()
-        self._last_fetch: float = 0.0
-
-    @property
-    def no_welcome(self) -> bool:
-        return self._no_welcome
-
-    @property
-    def no_service_msg(self) -> bool:
-        return self._no_service_msg
-
-    @property
-    def no_blue(self) -> bool:
-        return self._no_blue
-
-    @property
-    def no_new_member(self) -> bool:
-        return self._no_new_member
-
-    @property
-    def ignore_err(self) -> bool:
-        return self._ignore_err
-
-    @no_welcome.setter
-    def no_welcome(self, value: bool) -> None:
-        self._no_welcome = value
-
-    @no_service_msg.setter
-    def no_service_msg(self, value: bool) -> None:
-        self._no_service_msg = value
-
-    @no_blue.setter
-    def no_blue(self, value: bool) -> None:
-        self._no_blue = value
-
-    @no_new_member.setter
-    def no_new_member(self, value: bool) -> None:
-        self._no_new_member = value
-
-    @ignore_err.setter
-    def ignore_err(self, value: bool) -> None:
-        self._ignore_err = value
-
-    @property
-    def welcome_text(self) -> Optional[str]:
-        return self._welcome_text
-
-    @welcome_text.setter
-    def welcome_text(self, value: str) -> None:
-        self._welcome_text = value
-
-    @property
-    def last_fetch(self) -> float:
-        return self._last_fetch
-
-    @last_fetch.setter
-    def last_fetch(self, value: float) -> None:
-        self._last_fetch = value
 
     @property
     def admins(self) -> Optional[List[int]]:
@@ -166,12 +117,14 @@ class GroupCache:
 
     async def update_group(self, chat_id: int, new_property: GroupProperty, no_update: bool = False) -> None:
         self.groups.update({chat_id: new_property})
-        if no_update: return
-        if await self.conn.query1('''SELECT 1 FROM "welcome_msg" WHERE "group_id" = %s''',
+        if no_update:
+            return
+        if await self.conn.query1('''SELECT 1 FROM "welcome_msg" WHERE "group_id" = $1''',
                                   chat_id) is None:  # type: ignore
             await self.conn.execute('''INSERT INTO "welcome_msg" 
-			("group_id", "msg", "ignore_err", "no_blue", "no_service", "no_welcome", "no_new_member") 
-			VALUES ($1, $2, $3, $4, $5, $6, $7)''',
+                                    ("group_id", "msg", "ignore_err", "no_blue", "no_service", 
+                                    "no_welcome", "no_new_member") 
+                                    VALUES ($1, $2, $3, $4, $5, $6, $7)''',
                                     chat_id,
                                     new_property.welcome_text,
                                     new_property.ignore_err,
@@ -182,8 +135,8 @@ class GroupCache:
                                     )  # type: ignore
         else:
             await self.conn.execute('''UPDATE "welcome_msg" 
-			SET "msg" = $1, "ignore_err" = $2, "no_blue" = $3, "no_service" = $4, 
-			"no_welcome" = $5, "no_new_member" = $6 WHERE "group_id" = $7''',
+                                    SET "msg" = $1, "ignore_err" = $2, "no_blue" = $3, "no_service" = $4, 
+                                    "no_welcome" = $5, "no_new_member" = $6 WHERE "group_id" = $7''',
                                     new_property.welcome_text,
                                     new_property.ignore_err,
                                     new_property.no_blue,
@@ -194,4 +147,4 @@ class GroupCache:
                                     )  # type: ignore
 
     async def delete_group(self, chat_id: int) -> None:
-        await self.conn.execute('''DELETE FROM "welcome_msg" WHERE "group_id" = %s''', chat_id)  # type: ignore
+        await self.conn.execute('''DELETE FROM "welcome_msg" WHERE "group_id" = $1''', chat_id)  # type: ignore
