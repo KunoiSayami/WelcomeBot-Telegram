@@ -1,5 +1,7 @@
 # Telegram Welcome bot
 
+## DUE TO MY ACCOUNT GOT TELEGRAM BANNED, THIS PROJECT IS NO LONGER MAINTENANCE
+
 A bot can receive new chat member then show the welcome message
 
 ## Acceptable command
