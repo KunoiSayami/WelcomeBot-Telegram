@@ -1,4 +1,4 @@
-Pyrogram~=1.0.7
-asyncpg~=0.21.0
-aiohttp~=3.6.2
-TgCrypto~=1.2.1
+Pyrogram~=1.2.20
+asyncpg~=0.25.0
+aiohttp~=3.8.1
+TgCrypto~=1.2.2
