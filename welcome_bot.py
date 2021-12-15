@@ -61,10 +61,12 @@ class WelcomeBot:
         logger.debug('Enter WelcomeBot.__init__()')
         config = ConfigParser()
         config.read('data/config.ini')
-        self.bot: Client = Client(config.get('bot', 'bot_token').split(':')[0],
-                                  config.get('bot', 'api_id'),
-                                  config.get('bot', 'api_hash'),
-                                  bot_token=config.get('bot', 'bot_token'))
+        self.bot: Client = Client(
+            config.get('bot', 'bot_token').split(':')[0],
+            config.get('bot', 'api_id'),
+            config.get('bot', 'api_hash'),
+            bot_token=config.get('bot', 'bot_token')
+        )
         self._bot_id: int = int(self.bot.session_name)
         self.conn: PostgreSQL = None
         self._bot_name: str = ''
@@ -258,5 +260,4 @@ if __name__ == '__main__':
     except ModuleNotFoundError:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(funcName)s - %(lineno)d - %(message)s')
-    logging.getLogger("pyrogram").setLevel(logging.WARNING)
-    asyncio.get_event_loop().run_until_complete(main())
+    asyncio.run(main())
