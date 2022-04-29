@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # welcome_bot.py
-# Copyright (C) 2017-2020 KunoiSayami
-#
-# This module is part of WelcomeBot-Telegram and is released under
-# the AGPL v3 License: https://www.gnu.org/licenses/agpl-3.0.txt
+# Copyright (C) 2017-2022 KunoiSayami
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
@@ -28,6 +25,7 @@ from configparser import ConfigParser
 import aiohttp
 import pyrogram.errors
 from pyrogram import Client, ContinuePropagation, filters
+from pyrogram.enums import ParseMode, ChatMembersFilter
 from pyrogram.handlers import MessageHandler
 from pyrogram.types import ChatPermissions, Message, User
 
@@ -39,7 +37,7 @@ def get_load_avg() -> str:
 
 
 setcommand_match = re.compile(r'^/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')
-gist_match = re.compile(r'^https://gist.githubusercontent.com/.+/[a-z0-9]{32}/raw/[a-z0-9]{40}/.*$')
+gist_match = re.compile(r'^https://gist.githubusercontent.com/.+/[a-z\d]{32}/raw/[a-z\d]{40}/.*$')
 setflag_match = re.compile(r'^/setflag(@[a-zA-Z_]*bot)?\s([a-zA-Z_]+)\s([01])$')
 
 markdown_symbols = ('_', '*', '~', '#', '^', '&', '`')
@@ -67,7 +65,7 @@ class WelcomeBot:
             config.get('bot', 'api_hash'),
             bot_token=config.get('bot', 'bot_token')
         )
-        self._bot_id: int = int(self.bot.session_name)
+        self._bot_id: int = int(self.bot.bot_token.split(':')[0])
         self.conn: PostgreSQL = None
         self._bot_name: str = ''
         self.load_datetime: datetime.datetime = datetime.datetime.now().replace(microsecond=0)
@@ -82,7 +80,7 @@ class WelcomeBot:
 
     @staticmethod
     async def bootstrap_send_message_timer(msg: Message, text: str, delay: int) -> None:
-        msg = await msg.reply(text, parse_mode='markdown', disable_web_page_preview=True)
+        msg = await msg.reply(text, parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)
         await asyncio.sleep(delay)
         await msg.delete()
 
@@ -129,7 +127,7 @@ class WelcomeBot:
             if welcome_text is not None:
                 try:
                     last_msg = (await msg.reply(welcome_text.replace('$name', parse_user_name(msg.new_chat_members[0])),
-                                                parse_mode='markdown', disable_web_page_preview=True)).message_id
+                                                parse_mode=ParseMode.MARKDOWN, disable_web_page_preview=True)).id
                 except pyrogram.errors.ChatWriteForbidden:
                     logger.error('Got ChatWriterForbidden in %d', msg.chat.id)
                     await msg.chat.leave()
@@ -151,8 +149,9 @@ class WelcomeBot:
             return
         group_info = await self.get_groups_cache_s(msg.chat.id)
         if group_info.admins is None:
-            admins = await client.get_chat_members(msg.chat.id, filter='administrators')
-            group_info.admins = [x.user.id for x in admins]
+            group_info.admins = [
+                admin.user.id async for admin in
+                client.get_chat_members(msg.chat.id, filter=ChatMembersFilter.ADMINISTRATORS)]
             await self.groups.update_group(msg.chat.id, group_info)
             logger.info('Updated administrator list in %d, new list is => %s', msg.chat.id, group_info.admins)
         if msg.from_user.id in group_info.admins:
@@ -176,12 +175,12 @@ class WelcomeBot:
                     welcomemsg = await response.text()
         if len(welcomemsg) > 2048:
             await msg.reply("**Error**:Welcome message is too long.(len() must smaller than 2048)",
-                            parse_mode='markdown')
+                            parse_mode=ParseMode.MARKDOWN)
             return
         p = await self.get_groups_cache_s(msg.chat.id)
         p.welcome_text = welcomemsg
         await self.groups.update_group(msg.chat.id, p)
-        await msg.reply(f"**Set welcome message to:**\n{welcomemsg}", parse_mode='markdown',
+        await msg.reply(f"**Set welcome message to:**\n{welcomemsg}", parse_mode=ParseMode.MARKDOWN,
                         disable_web_page_preview=True)
 
     async def get_groups_cache_s(self, chat_id: int) -> GroupProperty:
@@ -194,7 +193,7 @@ class WelcomeBot:
         p = await self.get_groups_cache_s(msg.chat.id)
         p.welcome_text = ''
         await self.groups.update_group(msg.chat.id, p)
-        await msg.reply("**Clear welcome message completed!**", parse_mode='markdown')
+        await msg.reply("**Clear welcome message completed!**", parse_mode=ParseMode.MARKDOWN)
 
     async def generate_status_message(self, _client: Client, msg: Message) -> None:
         info = await self.get_groups_cache_s(msg.chat.id)

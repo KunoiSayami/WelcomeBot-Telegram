@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 # cache.py
-# Copyright (C) 2017-2020 KunoiSayami
-#
-# This module is part of WelcomeBot-Telegram and is released under
-# the AGPL v3 License: https://www.gnu.org/licenses/agpl-3.0.txt
+# Copyright (C) 2017-2022 KunoiSayami
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Affero General Public License as published by
