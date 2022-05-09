@@ -33,7 +33,7 @@ from cache import GroupCache, GroupProperty, PostgreSQL
 
 
 def get_load_avg() -> str:
-    return ' '.join(map(str, os.getloadavg()))
+    return ' '.join(map(lambda x: f'{x:.2f}', os.getloadavg()))
 
 
 setcommand_match = re.compile(r'^/setwelcome(@[a-zA-Z_]*bot)?\s((.|\n)*)$')
@@ -259,4 +259,6 @@ if __name__ == '__main__':
     except ModuleNotFoundError:
         logging.basicConfig(level=logging.DEBUG,
                             format='%(asctime)s - %(levelname)s - %(funcName)s - %(lineno)d - %(message)s')
+    logging.getLogger("pyrogram").setLevel(logging.WARNING)
+    logging.getLogger("asyncio").setLevel(logging.WARNING)
     asyncio.run(main())
