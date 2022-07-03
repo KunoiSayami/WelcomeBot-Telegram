@@ -23,39 +23,49 @@ import asyncpg
 from typing import Callable, Tuple, Union, Any
 
 config = ConfigParser()
-config.read('data/config.ini')
-host = config.get('database', 'host')
-port = config.get('pgsql', 'port')  # only for pgsql
-muser = config.get('database', 'user')
-mpasswd = config.get('database', 'password')
-puser = config.get('pgsql', 'user')
-ppasswd = config.get('pgsql', 'password')
-mdatabase = config.get('database', 'db')
-pdatabase = config.get('pgsql', 'database')
+config.read("data/config.ini")
+host = config.get("database", "host")
+port = config.get("pgsql", "port")  # only for pgsql
+muser = config.get("database", "user")
+mpasswd = config.get("database", "password")
+puser = config.get("pgsql", "user")
+ppasswd = config.get("pgsql", "password")
+mdatabase = config.get("database", "db")
+pdatabase = config.get("pgsql", "database")
 
 
 async def main() -> None:
-    pgsql_connection = await asyncpg.connect(host=host, port=port, user=puser, password=ppasswd, database=pdatabase)
+    pgsql_connection = await asyncpg.connect(
+        host=host, port=port, user=puser, password=ppasswd, database=pdatabase
+    )
     mysql_connection = await aiomysql.create_pool(
         host=host,
         user=muser,
         password=mpasswd,
         db=mdatabase,
-        charset='utf8mb4',
+        charset="utf8mb4",
         cursorclass=aiomysql.cursors.Cursor,
     )
-    if input('Do you want to delete all data? [y/N]: ').strip().lower() == 'y':
+    if input("Do you want to delete all data? [y/N]: ").strip().lower() == "y":
         await clean(pgsql_connection)
-        print('Clear database successfully')
+        print("Clear database successfully")
     else:
-        print('Skipped clear database')
+        print("Skipped clear database")
     async with mysql_connection.acquire() as conn:
         async with conn.cursor() as cursor:
-            await exec_and_insert(cursor, "SELECT * FROM poem", pgsql_connection,
-                                  '''INSERT INTO poem VALUES ($1)''')
-            await exec_and_insert(cursor, "SELECT * FROM welcomemsg", pgsql_connection,
-                                  '''INSERT INTO "welcome_msg" VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)''',
-                                  transfer)
+            await exec_and_insert(
+                cursor,
+                "SELECT * FROM poem",
+                pgsql_connection,
+                """INSERT INTO poem VALUES ($1)""",
+            )
+            await exec_and_insert(
+                cursor,
+                "SELECT * FROM welcomemsg",
+                pgsql_connection,
+                """INSERT INTO "welcome_msg" VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)""",
+                transfer,
+            )
     await pgsql_connection.close()
     mysql_connection.close()
     await mysql_connection.wait_closed()
@@ -63,16 +73,31 @@ async def main() -> None:
 
 def transfer(obj: Tuple[int, str, str, str]) -> Tuple[Union[bool, Any], ...]:
     def str2bool(x: str) -> bool:
-        return True if x == 'Y' else False
-    return tuple(map(lambda x: str2bool(x) if isinstance(x, str) and x in ['Y', 'N'] else x, obj))
+        return True if x == "Y" else False
+
+    return tuple(
+        map(lambda x: str2bool(x) if isinstance(x, str) and x in ["Y", "N"] else x, obj)
+    )
 
 
-async def exec_and_insert(cursor, sql: str, pg_connection, insert_sql: str,
-                          process: Callable[[Any], Any] = None) -> None:
-    print('Processing table:', sql[13:])
+async def exec_and_insert(
+    cursor,
+    sql: str,
+    pg_connection,
+    insert_sql: str,
+    process: Callable[[Any], Any] = None,
+) -> None:
+    print("Processing table:", sql[13:])
     try:
-        if await pg_connection.fetchrow(f'{sql} LIMIT 1') is not None:
-            if input(f'Table {sql[13:]} has data, do you still want to process insert? [y/N]: ').strip().lower() != 'y':
+        if await pg_connection.fetchrow(f"{sql} LIMIT 1") is not None:
+            if (
+                input(
+                    f"Table {sql[13:]} has data, do you still want to process insert? [y/N]: "
+                )
+                .strip()
+                .lower()
+                != "y"
+            ):
                 return
     except:
         pass
@@ -89,5 +114,5 @@ async def clean(pgsql_connection: asyncpg.connection) -> None:
     await pgsql_connection.execute('''TRUNCATE "welcome_msg"''')
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.get_event_loop().run_until_complete(main())
