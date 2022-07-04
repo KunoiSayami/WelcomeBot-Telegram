@@ -16,7 +16,9 @@
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
+from typing import List, Optional
+
+import asyncpg
 
 from libpy3.aiopgsqldb import PgSQLdb
 
@@ -114,7 +116,7 @@ class GroupCache:
         return self.groups.get(key)
 
     @staticmethod
-    def get_group_property_from_dict(d: Dict[str, Union[bool, str]]) -> GroupProperty:
+    def get_group_property_from_dict(d: asyncpg.Record) -> GroupProperty:
         return GroupProperty(
             d["msg"],
             d["no_welcome"],

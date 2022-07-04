@@ -15,11 +15,15 @@
 #
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
+import argparse
+import ast
 import asyncio
+import base64
 import datetime
 import logging
 import os
 import re
+import struct
 from configparser import ConfigParser
 
 import aiohttp
@@ -68,12 +72,12 @@ class WelcomeBot:
             bot_token=config.get("bot", "bot_token"),
         )
         self._bot_id: int = int(self.bot.bot_token.split(":")[0])
-        self.conn: PostgreSQL = None
+        self.conn: PostgreSQL | None = None
         self._bot_name: str = ""
         self.load_datetime: datetime.datetime = datetime.datetime.now().replace(
             microsecond=0
         )
-        self.groups: GroupCache = None
+        self.groups: GroupCache | None = None
         self.error_message: str = config.get("bot", "error_message", fallback="")
         self.init_receiver()
 
@@ -190,30 +194,30 @@ class WelcomeBot:
                         msg.chat.id,
                         msg.from_user.id,
                         ChatPermissions(can_send_messages=False),
-                        msg.date + 60,
+                        msg.date + datetime.timedelta(seconds=30),
                     )
                 except:
                     pass
 
     async def set_welcome_message(self, _client: Client, msg: Message) -> None:
         result = set_command_match.match(msg.text)
-        welcomemsg = str(result.group(2))
-        result = gist_match.match(welcomemsg)
+        welcome_msg = str(result.group(2))
+        result = gist_match.match(welcome_msg)
         if result:
             async with aiohttp.ClientSession(raise_for_status=True) as session:
-                async with session.get(welcomemsg) as response:
-                    welcomemsg = await response.text()
-        if len(welcomemsg) > 2048:
+                async with session.get(welcome_msg) as response:
+                    welcome_msg = await response.text()
+        if len(welcome_msg) > 2048:
             await msg.reply(
                 "**Error**:Welcome message is too long.(len() must smaller than 2048)",
                 parse_mode=ParseMode.MARKDOWN,
             )
             return
         p = await self.get_groups_cache_s(msg.chat.id)
-        p.welcome_text = welcomemsg
+        p.welcome_text = welcome_msg
         await self.groups.update_group(msg.chat.id, p)
         await msg.reply(
-            f"**Set welcome message to:**\n{welcomemsg}",
+            f"**Set welcome message to:**\n{welcome_msg}",
             parse_mode=ParseMode.MARKDOWN,
             disable_web_page_preview=True,
         )
@@ -234,7 +238,7 @@ class WelcomeBot:
 
     async def generate_status_message(self, _client: Client, msg: Message) -> None:
         info = await self.get_groups_cache_s(msg.chat.id)
-        self.send_and_delete(msg, f"Current welcome messsage: {info.welcome_text}", 10)
+        self.send_and_delete(msg, f"Current welcome message: {info.welcome_text}", 10)
 
     async def response_ping_command(self, _client: Client, msg: Message) -> None:
         self.send_and_delete(
@@ -264,6 +268,10 @@ class WelcomeBot:
             group_info.no_service_msg = value
         elif r.group(2) == "no_new_member":
             group_info.no_new_member = value
+        elif r.group(2) == "no_channel":
+            pass
+        elif r.group(2) == "no_channel_message":
+            pass
         await self.groups.update_group(msg.chat.id, group_info)
         self.send_and_delete(
             msg, f"Set {r.group(2)} flag to **{value}** successfully!", 10
@@ -328,6 +336,60 @@ async def main() -> None:
     await b.stop()
 
 
+async def upgrade_database() -> None:
+    current_version = 1
+    config = ConfigParser()
+    config.read("data/config.ini")
+    conn = await PostgreSQL.create(
+        config.get("pgsql", "host"),
+        config.getint("pgsql", "port"),
+        config.get("pgsql", "user"),
+        config.get("pgsql", "password"),
+        config.get("pgsql", "database"),
+    )
+    await conn.execute("""DROP TABLE IF EXISTS alt_table""")
+    await conn.execute(
+        """create table alt_table
+               (
+                   group_id        bigint not null
+                       constraint alt_table_pk
+                           primary key,
+                   available       bool,
+                   msg             text  default null,
+                   flags           bytea default null,
+                   "except" bigint[] not null,
+                   previous_msg_id int   default null
+               )
+               """
+    )
+    elements = await conn.query("""SELECT * FROM "welcome_msg" """)
+    for element in elements:
+        flags = struct.pack(
+            "<h????????",
+            current_version,
+            element["no_welcome"],
+            element["no_service"],
+            element["no_new_member"],
+            element["no_blue"],
+            element["ignore_err"],
+            element['poemable'],
+            False,  # Reserved for no channel
+            False,  # Reserved for no channel message
+        )
+        await conn.execute(
+            """INSERT INTO "alt_table" VALUES ($1, $2, $3, $4, $5, $6)""",
+            element["group_id"],
+            element["available"],
+            element["msg"],
+            flags,
+            ast.literal_eval(base64.b64decode(element["except"]).decode()),
+            element["previous_msg"],
+        )
+    await conn.execute("""DROP TABLE "welcome_msg" """)
+    await conn.execute("""ALTER TABLE "alt_table" RENAME TO "welcome_msg" """)
+    logger.info('Process %d record(s)', len(elements))
+
+
 if __name__ == "__main__":
     try:
         import coloredlogs
@@ -341,6 +403,14 @@ if __name__ == "__main__":
             level=logging.DEBUG,
             format="%(asctime)s - %(levelname)s - %(funcName)s - %(lineno)d - %(message)s",
         )
+    _parser = argparse.ArgumentParser()
+    _parser.add_argument('--cfg', help='specify configure file')
+    _parser_sub = _parser.add_subparsers(title='subcommand', dest='sub')
+    _parser_upgrade_sub = _parser_sub.add_parser('upgrade')
+    _arg_parser = _parser.parse_args()
     logging.getLogger("pyrogram").setLevel(logging.WARNING)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
-    asyncio.run(main())
+    if _arg_parser.sub == 'upgrade':
+        asyncio.run(upgrade_database())
+    else:
+        asyncio.run(main())
