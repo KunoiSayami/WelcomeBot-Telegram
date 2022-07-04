@@ -22,7 +22,7 @@ Placeholder | Replace to
 ---|----
 `$name` | user nickname
 
-_Known bug: If user name contains markdown characters may cause markdown error (replace process not work)_
+_Known bug: If username contains markdown characters may cause markdown error (replace process not work)_
 
 ### Flags detail
 
@@ -74,7 +74,11 @@ The following libraries are required:
 
 ### Run
 
-After configure, you can using `./welcome_bot.py` to run this bot
+After configure, you can use `./welcome_bot.py` to run this bot
+
+### v3.0 -> v4.0 migration
+
+You should run `./welcome_bot.py upgrade` after updated code, that's all.
 
 ## Hint
 
@@ -101,7 +105,7 @@ If bot is group admin, other member who not admin or owner using command will re
 
 [![](https://www.gnu.org/graphics/agplv3-155x51.png)](https://www.gnu.org/licenses/agpl-3.0.txt)
    
-Copyright (C) 2017-2020 KunoiSayami
+Copyright (C) 2017-2022 KunoiSayami
 
 This program is free software: you can redistribute it and/or modify it under the terms of the GNU Affero General Public License as published by the Free Software Foundation, either version 3 of the License, or any later version.
 

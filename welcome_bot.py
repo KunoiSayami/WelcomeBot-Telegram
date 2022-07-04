@@ -19,6 +19,7 @@ import argparse
 import ast
 import asyncio
 import base64
+import cache
 import datetime
 import logging
 import os
@@ -269,9 +270,9 @@ class WelcomeBot:
         elif r.group(2) == "no_new_member":
             group_info.no_new_member = value
         elif r.group(2) == "no_channel":
-            pass
+            group_info.no_channel = value
         elif r.group(2) == "no_channel_message":
-            pass
+            group_info.no_channel_msg = value
         await self.groups.update_group(msg.chat.id, group_info)
         self.send_and_delete(
             msg, f"Set {r.group(2)} flag to **{value}** successfully!", 10
@@ -337,7 +338,6 @@ async def main() -> None:
 
 
 async def upgrade_database() -> None:
-    current_version = 1
     config = ConfigParser()
     config.read("data/config.ini")
     conn = await PostgreSQL.create(
@@ -365,14 +365,14 @@ async def upgrade_database() -> None:
     elements = await conn.query("""SELECT * FROM "welcome_msg" """)
     for element in elements:
         flags = struct.pack(
-            "<h????????",
-            current_version,
+            cache.PACK_FORMAT,
+            cache.DATABASE_CURRENT_VERSION,
             element["no_welcome"],
             element["no_service"],
             element["no_new_member"],
             element["no_blue"],
             element["ignore_err"],
-            element['poemable'],
+            element["poemable"],
             False,  # Reserved for no channel
             False,  # Reserved for no channel message
         )
@@ -387,7 +387,11 @@ async def upgrade_database() -> None:
         )
     await conn.execute("""DROP TABLE "welcome_msg" """)
     await conn.execute("""ALTER TABLE "alt_table" RENAME TO "welcome_msg" """)
-    logger.info('Process %d record(s)', len(elements))
+    await conn.execute(
+        """alter table welcome_msg
+                   rename constraint alt_table_pk to welcome_msg_pk"""
+    )
+    logger.info("Process %d record(s)", len(elements))
 
 
 if __name__ == "__main__":
@@ -404,13 +408,13 @@ if __name__ == "__main__":
             format="%(asctime)s - %(levelname)s - %(funcName)s - %(lineno)d - %(message)s",
         )
     _parser = argparse.ArgumentParser()
-    _parser.add_argument('--cfg', help='specify configure file')
-    _parser_sub = _parser.add_subparsers(title='subcommand', dest='sub')
-    _parser_upgrade_sub = _parser_sub.add_parser('upgrade')
+    _parser.add_argument("--cfg", help="specify configure file")
+    _parser_sub = _parser.add_subparsers(title="subcommand", dest="sub")
+    _parser_upgrade_sub = _parser_sub.add_parser("upgrade")
     _arg_parser = _parser.parse_args()
     logging.getLogger("pyrogram").setLevel(logging.WARNING)
     logging.getLogger("asyncio").setLevel(logging.WARNING)
-    if _arg_parser.sub == 'upgrade':
+    if _arg_parser.sub == "upgrade":
         asyncio.run(upgrade_database())
     else:
         asyncio.run(main())

@@ -2,8 +2,8 @@
 -- PostgreSQL database dump
 --
 
--- Dumped from database version 12.4
--- Dumped by pg_dump version 12.4
+-- Dumped from database version 14.3
+-- Dumped by pg_dump version 14.3
 
 SET statement_timeout = 0;
 SET lock_timeout = 0;
@@ -37,43 +37,15 @@ ALTER TABLE public.poem OWNER TO postgres;
 
 CREATE TABLE public.welcome_msg (
     group_id bigint NOT NULL,
+    available boolean,
     msg text,
-    poemable boolean DEFAULT false NOT NULL,
-    ignore_err boolean DEFAULT true NOT NULL,
-    no_blue boolean DEFAULT false NOT NULL,
-    no_service boolean DEFAULT false NOT NULL,
-    no_welcome boolean DEFAULT false NOT NULL,
-    no_new_member boolean DEFAULT false NOT NULL,
-    available boolean DEFAULT true NOT NULL,
-    "except" character varying(500) DEFAULT 'W10='::character varying NOT NULL,
-    previous_msg integer
+    flags bytea,
+    "except" bigint[] DEFAULT ARRAY[]::bigint[] NOT NULL,
+    previous_msg_id integer
 );
 
 
 ALTER TABLE public.welcome_msg OWNER TO postgres;
-
---
--- Name: welcome_msg2; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.welcome_msg2 (
-    group_id bigint NOT NULL,
-    available boolean DEFAULT true NOT NULL,
-    msg text,
-    settings json DEFAULT '{"poemable": false,"ignore_err": false, "no_blue": false, "no_service": false, "no_welcome": false, "no_new_member": false, "except": []}'::json NOT NULL,
-    previous_msg integer
-);
-
-
-ALTER TABLE public.welcome_msg2 OWNER TO postgres;
-
---
--- Name: welcome_msg2 welcome_msg2_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.welcome_msg2
-    ADD CONSTRAINT welcome_msg2_pk PRIMARY KEY (group_id);
-
 
 --
 -- Name: welcome_msg welcome_msg_pk; Type: CONSTRAINT; Schema: public; Owner: postgres
