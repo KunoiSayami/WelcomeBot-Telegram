@@ -89,7 +89,7 @@ class GroupProperty:
 
     @classmethod
     def unpack(cls, welcome_text: str, data: bytes) -> "GroupProperty":
-        version = struct.unpack("<h", data[:2])
+        version, = struct.unpack("<h", data[:2])
         if version != DATABASE_CURRENT_VERSION:
             raise ValueError(
                 f"except version {DATABASE_CURRENT_VERSION} but {version} found"
