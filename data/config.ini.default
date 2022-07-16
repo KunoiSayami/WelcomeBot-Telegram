@@ -1,13 +1,12 @@
 [bot]
 api_id =
 api_hash =
-bot_token = 
-owner = 
+bot_token =
+owner =
 
-[database]
-charset =
-host =
-port =
+[pgsql]
+host = localhost
+port = 5432
 user =
 password =
-db =
+database =
