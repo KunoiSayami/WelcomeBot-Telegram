@@ -146,7 +146,7 @@ class PostgreSQL(PgSQLdb):
                 """SELECT "previous_msg_id" FROM "welcome_msg" WHERE "group_id" = $1""",
                 chat_id,
             )
-        )["previous_msg"]
+        )["previous_msg_id"]
 
 
 # FIXME: using redis instead built-in dict
